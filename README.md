@@ -36,7 +36,7 @@ Everything runs in your browser. The SSID, password, and logo are never sent any
 
 The card is built as a height map in the browser and exported as meshes. No server or slicer plugin is needed.
 
-A WebGL viewer (no dependencies) shows the exported meshes in color. Drag to rotate, scroll to zoom. A flat top-down color-layer preview is shown below it.
+A WebGL viewer (no dependencies) shows the exported meshes in color, either assembled (the card standing in the two stand clips) or as exported (card and stand parts side by side). Drag to rotate, scroll to zoom. A flat top-down color-layer preview is shown below it.
 
 | Export | Use it for |
 | --- | --- |

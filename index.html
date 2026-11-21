@@ -243,8 +243,12 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 
     <div class="print3d">
       <h2>3Dプリント用モデル</h2>
+      <div class="seg" role="radiogroup" aria-label="3D表示">
+        <label><input type="radio" name="v3mode" value="assembled" checked>組み立て</label>
+        <label><input type="radio" name="v3mode" value="layout">書き出し形状</label>
+      </div>
       <canvas id="v3" aria-label="3Dモデルのプレビュー"></canvas>
-      <p class="note">ドラッグで回転、ホイールで拡大・縮小</p>
+      <p class="note" id="v3note">ドラッグで回転、ホイールで拡大・縮小</p>
       <canvas id="pv" aria-label="色層のプレビュー"></canvas>
       <ul class="legend" id="legend"></ul>
       <div class="actions">
@@ -504,7 +508,8 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(R.moduleMm&&R.moduleMm<1.0)msg+=` QRのセルが ${R.moduleMm.toFixed(2)} mm と小さめです。カード幅を広げると読み取りが安定します。`;
     else if(R.moduleMm)msg+=` QRのセルは約 ${R.moduleMm.toFixed(2)} mm。`;
     $("status").textContent=msg;
-    v3set(await cardParts({...o,res:3},o.finish),C);
+    V3.card=await cardParts({...o,res:3},o.finish);V3.stand=standPart({...o,res:6},true)[0];V3.T=o.finish==="flat"?o.T:o.T+o.h;
+    v3scene();
     $("howto").textContent=o.finish==="flat"
       ?"フラット: 色は上面の色層だけに入ります。3MF をそのまま開くか、色別STLを同時に読み込んで「1つのオブジェクトの複数パーツ」として扱い、各パーツにフィラメントを割り当ててください。"
       :`浮き彫り: 「色替え用STL」を使い、高さ ${o.T.toFixed(2)} mm でフィラメント交換（一時停止）を入れると、土台と、文字・QR・ロゴの2色になります。マルチカラー機なら3MF/色別STLで4色にできます。`;
@@ -571,6 +576,16 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     cv.onpointermove=e=>{if(!drag)return;V3.yaw-=(e.clientX-drag[0])*.01;V3.pitch=Math.min(1.55,Math.max(.05,V3.pitch+(e.clientY-drag[1])*.01));drag=[e.clientX,e.clientY];v3draw();};
     cv.addEventListener("wheel",e=>{e.preventDefault();V3.zoom=Math.min(3,Math.max(.3,V3.zoom*Math.exp(e.deltaY*.001)));v3draw();},{passive:false});
   }
+  // 組み立て: カードをスタンド2個の溝に立てる / 書き出し形状: 3MF・STLで出力されるカードとスタンドをそのまま並べる
+  function v3scene(){
+    if(!V3.card)return;
+    const tr=(p,f)=>{const v=[];for(let i=0;i<p.verts.length;i+=3)v.push(...f(p.verts[i],p.verts[i+1],p.verts[i+2]));return {...p,verts:v};};
+    const asm=document.querySelector('input[name=v3mode]:checked').value==="assembled",st=V3.stand,xs=asm?[15,95]:[20,90];
+    const card=asm?V3.card.map(p=>tr(p,(x,y,z)=>[x,11+V3.T/2-z,5+y])):V3.card;
+    const clips=xs.map(x=>tr(st,(a,b,c)=>[a+x,asm?b:b-30,c]));
+    $("v3note").textContent=(asm?"組み立て: カードをスタンド2個の溝に差した状態。":"書き出し形状: 3MF/STL のカードと、スタンドSTL（2個）をそのまま並べています。")+"ドラッグで回転、ホイールで拡大・縮小";
+    v3set(card.concat(clips),colors());
+  }
   function v3set(parts,C){
     const gl=V3.gl;if(!gl)return;
     const lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];
@@ -609,8 +624,9 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     }
   }
   v3init();addEventListener("resize",v3draw);
+  document.querySelectorAll("input[name=v3mode]").forEach(e=>e.onchange=v3scene);
 
-  function standPart(o){
+  function standPart(o,single){
     const thick=(o.finish==="flat"?o.T:o.T+o.h)+0.4,D=22,Hs=14,depth=9,Lx=40,res=o.res;
     const w=Math.round(D*res),h=Math.round(Hs*res),top=new Float32Array(w*h);
     for(let j=0;j<h;j++)for(let i=0;i<w;i++){
@@ -618,7 +634,8 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
       if(!(Math.abs(u-D/2)<thick/2&&v>Hs-depth))top[j*w+i]=Lx;
     }
     const a=meshHF(w,h,res,top,0,(u,v,z)=>[z,u,v]),b=meshHF(w,h,res,top,0,(u,v,z)=>[z,u+D+6,v]),off=a.verts.length/3;
-    return [{key:"stand",fil:1,verts:a.verts.concat(b.verts),tris:a.tris.concat(b.tris.map(t=>t+off))}];
+    if(single)return [{key:"stand",ckey:"base",fil:1,...a}];
+    return [{key:"stand",ckey:"base",fil:1,verts:a.verts.concat(b.verts),tris:a.tris.concat(b.tris.map(t=>t+off))}];
   }
 
   /* ---------- 書き出し ---------- */
