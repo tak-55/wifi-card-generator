@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Wi-Fi カードジェネレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@600&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="vendor/qrcode.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E9EDF1; --panel:#FFFFFF; --ink:#1C2733; --muted:#5B6878; --line:#CBD3DC; --ui:#2F8FE0;
+  --c-base:#1A1F26; --c-white:#F2F5F8; --c-a1:#2F8FE0; --c-a2:#E3A93B;
+}
+@media (prefers-color-scheme: dark){
+  :root{ color-scheme: dark; --bg:#12171D; --panel:#1B222B; --ink:#E6EBF0; --muted:#97A3B1; --line:#2E3946; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:15px;line-height:1.6}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 48px;display:grid;gap:28px;
+  grid-template-columns:minmax(0,390px) minmax(0,1fr);align-items:start}
+@media (max-width:880px){main{grid-template-columns:1fr}}
+h1{font-size:1.5rem;margin:0 0 4px;font-weight:700}
+h2{font-size:1.05rem;margin:4px 0 0}
+.lead{margin:0 0 20px;color:var(--muted);font-size:.9rem}
+form{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:18px}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:10px;min-width:0}
+fieldset+fieldset{border-top:1px solid var(--line);padding-top:16px}
+legend{font-weight:700;margin-bottom:6px;float:left;width:100%}
+label{display:grid;gap:4px;font-size:.88rem;color:var(--muted)}
+input[type=text],input[type=number],select{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+select option{background:var(--panel)}
+input.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:1rem}
+input[type=color]{width:100%;height:34px;border:1px solid var(--line);border-radius:8px;background:transparent;padding:2px}
+input[type=file]{font-size:.84rem;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:end}
+.row>*{flex:1;min-width:0}
+.check{display:flex;gap:8px;align-items:center;color:var(--ink)}
+.check input{width:16px;height:16px;accent-color:var(--ui)}
+input[type=range]{accent-color:var(--ui);width:100%}
+button{font:inherit;font-weight:500;cursor:pointer;border-radius:8px;padding:9px 14px;border:1px solid var(--line);background:transparent;color:var(--ink)}
+button.primary{background:var(--ui);border-color:var(--ui);color:#fff}
+button.small{padding:5px 10px;font-size:.84rem}
+button:disabled{opacity:.5;cursor:progress}
+button:hover:not(:disabled){filter:brightness(1.06)}
+:focus-visible{outline:3px solid var(--ui);outline-offset:2px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{flex:1;display:block;text-align:center;cursor:pointer;padding:7px 4px;color:var(--ink);font-size:.86rem}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ui);color:#fff}
+.seg label:has(input:focus-visible){outline:3px solid var(--ui);outline-offset:-3px}
+.strength,.note{font-size:.8rem;color:var(--muted);margin:0}
+
+.stage{display:grid;gap:16px;justify-items:center}
+.wifi-card{width:min(100%,640px);aspect-ratio:150/94;background:var(--c-base);color:var(--c-white);border-radius:22px;
+  padding:5.5%;position:relative;display:grid;grid-template-columns:1fr auto;gap:5%;align-items:center;
+  box-shadow:0 18px 40px -18px rgba(10,20,35,.55);container-type:inline-size}
+.wifi-card.framed::before{content:"";position:absolute;inset:2%;border:2px solid var(--c-a1);border-radius:16px;pointer-events:none}
+.wifi-card .corner{position:absolute;top:5%;right:5%;width:9%;height:6%;border-top:3px solid var(--c-a2);border-right:3px solid var(--c-a2);border-top-right-radius:8px}
+.card-left{display:grid;gap:3cqi;min-width:0}
+.card-head{display:flex;align-items:center;gap:2.6cqi;min-width:0}
+.card-head svg{width:7cqi;height:auto;flex:none;color:var(--c-a1)}
+.card-head canvas{height:8cqi;width:auto;max-width:30cqi;flex:none}
+.card-title{font-size:4.6cqi;font-weight:700;line-height:1.15;overflow-wrap:anywhere}
+.k{font-size:2.6cqi;font-weight:700;margin:0;color:var(--c-a1)}
+.k.pw{color:var(--c-a2)}
+.v{font-size:4.8cqi;font-weight:700;margin:0;line-height:1.25;overflow-wrap:anywhere}
+.v.pwv{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-weight:600}
+.card-foot{font-size:2.6cqi;font-weight:700;margin-top:1cqi;display:flex;align-items:center;gap:1.4cqi}
+.card-foot::before{content:"";width:1.4cqi;height:1.4cqi;border-radius:50%;background:var(--c-a1)}
+.qr-wrap{display:grid;gap:2cqi;justify-items:center}
+.qr-box{background:var(--c-white);border-radius:8px;padding:2cqi;width:33cqi}
+.qr-box svg{display:block;width:100%;height:auto}
+.qr-cap{font-size:2.4cqi;font-weight:700}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.payload{font-family:ui-monospace,Menlo,monospace;font-size:.78rem;color:var(--muted);max-width:640px;width:100%;overflow-x:auto;white-space:nowrap;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
+
+.print3d{width:min(100%,640px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px}
+.print3d canvas{width:100%;height:auto;border-radius:10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem;margin:0;padding:0;list-style:none}
+.legend li{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--line)}
+#status{font-size:.84rem;color:var(--muted);margin:0;min-height:1.3em}
+footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
+
+@media print{
+  @page{size:A5 landscape;margin:12mm}
+  body{background:#fff}
+  main{display:block;padding:0}
+  .controls,.actions,.payload,.print3d,footer{display:none!important}
+  .wifi-card{width:100%;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<main>
+  <section class="controls">
+    <h1>Wi-Fi カードジェネレーター</h1>
+    <p class="lead">パスワード・QRコード・3Dモデルはすべてこのブラウザ内で作られ、どこにも送信されません。</p>
+
+    <form id="f" autocomplete="off" onsubmit="return false">
+      <fieldset>
+        <legend>ネットワーク</legend>
+        <label>SSID<input type="text" id="ssid" spellcheck="false"></label>
+        <label>暗号化
+          <select id="sec">
+            <option value="WPA" selected>WPA2 / WPA3</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">なし（オープン）</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="hidden"> ステルスSSID</label>
+      </fieldset>
+
+      <fieldset id="pwset">
+        <legend>パスワード</legend>
+        <div class="seg" role="radiogroup" aria-label="生成方式">
+          <label><input type="radio" name="mode" value="words" checked>読みやすい</label>
+          <label><input type="radio" name="mode" value="random">ランダム</label>
+          <label><input type="radio" name="mode" value="manual">手入力</label>
+        </div>
+        <label id="lenLabel">長さ: <span id="lenVal">16</span> 文字<input type="range" id="len" min="10" max="32" value="16"></label>
+        <label class="check" id="ambWrap"><input type="checkbox" id="noAmb" checked> 紛らわしい文字を除く（0 O 1 l I など）</label>
+        <label class="check" id="symWrap"><input type="checkbox" id="sym" checked> 記号を含める</label>
+        <div class="row">
+          <input type="text" id="pw" class="mono" spellcheck="false" aria-label="パスワード">
+          <button type="button" id="regen" class="primary" style="flex:none">生成</button>
+        </div>
+        <span class="strength" id="strength"></span>
+      </fieldset>
+
+      <fieldset>
+        <legend>ブランド</legend>
+        <label>見出し（社名など）<input type="text" id="title"></label>
+        <label>ロゴ画像（単色の透過 SVG/PNG がおすすめ）
+          <input type="file" id="logoFile" accept="image/svg+xml,image/png,image/webp,image/jpeg">
+        </label>
+        <div class="row">
+          <label>背景の抜き方
+            <select id="logoMode">
+              <option value="alpha">透過部分を抜く</option>
+              <option value="light">白い背景を抜く</option>
+            </select>
+          </label>
+          <label>ロゴの色
+            <select id="logoLayer">
+              <option value="white">白</option>
+              <option value="a1">アクセント1</option>
+              <option value="a2">アクセント2</option>
+            </select>
+          </label>
+        </div>
+        <div class="row" style="align-items:center">
+          <span class="note" id="logoState"></span>
+          <button type="button" class="small" id="logoClear" style="flex:none">ロゴを外す</button>
+        </div>
+        <div class="row">
+          <label>土台<input type="color" id="cBase"></label>
+          <label>白<input type="color" id="cWhite"></label>
+          <label>アクセント1<input type="color" id="cA1"></label>
+          <label>アクセント2<input type="color" id="cA2"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>カード表示</legend>
+        <label>左下の文字<input type="text" id="foot"></label>
+        <label>ラベル
+          <select id="lang">
+            <option value="en">英語（NETWORK / PASSWORD）</option>
+            <option value="ja">日本語（ネットワーク / パスワード）</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="showPw" checked> カードにパスワードを表示</label>
+        <label class="check"><input type="checkbox" id="frame"> 外枠</label>
+        <label class="check"><input type="checkbox" id="corner"> 右上のアクセント</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>3Dプリント</legend>
+        <label>仕上げ
+          <select id="finish">
+            <option value="flat" selected>フラット（色が面一。AMS などマルチカラー向け）</option>
+            <option value="raised">浮き彫り（単色ノズルで途中1回の色替え向け）</option>
+          </select>
+        </label>
+        <div class="row">
+          <label>カード幅 (mm)<input type="number" id="cw" min="100" max="220" step="5" value="150"></label>
+          <label>板厚 (mm)<input type="number" id="ct" min="2" max="6" step="0.2" value="3"></label>
+          <label>色層 (mm)<input type="number" id="ch" min="0.4" max="1.2" step="0.2" value="0.6"></label>
+        </div>
+        <label>メッシュ解像度
+          <select id="res">
+            <option value="8" selected>標準（0.125 mm）</option>
+            <option value="12">高精細（0.083 mm・ファイル大）</option>
+          </select>
+        </label>
+        <p class="note">文字やロゴの細い線は 0.4 mm ノズルで潰れることがあります。カード幅 150 mm 以上が安定です。</p>
+      </fieldset>
+      <button type="button" class="small" id="reset" style="justify-self:start">設定を既定に戻す</button>
+    </form>
+  </section>
+
+  <section class="stage">
+    <div class="wifi-card" id="card">
+      <span class="corner" id="cCorner" aria-hidden="true"></span>
+      <div class="card-left">
+        <div class="card-head">
+          <svg id="cIcon" viewBox="0 0 48 36" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round">
+            <path d="M4 12a28 28 0 0 1 40 0"/><path d="M11 19a18 18 0 0 1 26 0"/><path d="M18 26a8 8 0 0 1 12 0"/>
+            <circle cx="24" cy="32" r="2.6" fill="currentColor" stroke="none"/>
+          </svg>
+          <canvas id="cLogo" hidden></canvas>
+          <span class="card-title" id="cTitle"></span>
+        </div>
+        <div><p class="k" id="cNetL"></p><p class="v" id="cSsid"></p></div>
+        <div id="cPwBlock"><p class="k pw" id="cPwL"></p><p class="v pwv" id="cPw"></p></div>
+        <div class="card-foot" id="cFoot"></div>
+      </div>
+      <div class="qr-wrap">
+        <div class="qr-box" id="qr"></div>
+        <span class="qr-cap" id="cScan"></span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="print">紙に印刷</button>
+      <button type="button" id="dlSvg">QRをSVGで保存</button>
+      <button type="button" id="dlPng">QRをPNGで保存</button>
+      <button type="button" id="copyPw">パスワードをコピー</button>
+    </div>
+    <div class="payload" id="payload" title="QRに埋め込まれる文字列"></div>
+
+    <div class="print3d">
+      <h2>3Dプリント用モデル</h2>
+      <canvas id="pv" aria-label="色層のプレビュー"></canvas>
+      <ul class="legend" id="legend"></ul>
+      <div class="actions">
+        <button type="button" class="primary" id="dl3mf">3MF（マルチカラー）</button>
+        <button type="button" id="dlZip">色別STL（ZIP）</button>
+        <button type="button" id="dlMono">色替え用STL</button>
+        <button type="button" id="dlStand">スタンドSTL</button>
+      </div>
+      <p id="status" role="status"></p>
+      <p class="note" id="howto"></p>
+    </div>
+  </section>
+  <footer>パスワードは保存されません。それ以外の設定はこのブラウザに保存されます。</footer>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* ---------- 設定: 組み込み既定 ← config.js ← ブラウザ保存 ---------- */
+  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", ssid:"Guest WiFi", foot:"GUEST ACCESS",
+    lang:"en", frame:true, corner:true, colors:{base:"#1A1F26",white:"#F2F5F8",a1:"#2F8FE0",a2:"#E3A93B"} };
+  const CFG = Object.assign({}, BUILTIN, window.WIFI_CARD_CONFIG||{});
+  CFG.colors = Object.assign({}, BUILTIN.colors, (window.WIFI_CARD_CONFIG||{}).colors||{});
+  const STORE_KEY = "wifi-card-settings-v1";
+  const FIELDS = { text:["ssid","title","foot"], select:["sec","lang","logoMode","logoLayer","finish","res"],
+    check:["hidden","showPw","frame","corner"], num:["cw","ct","ch"], color:{cBase:"base",cWhite:"white",cA1:"a1",cA2:"a2"} };
+  const store = {
+    get(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch{ return {}; } },
+    set(v){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(v)); return true; }catch{ return false; } },
+    clear(){ try{ localStorage.removeItem(STORE_KEY); }catch{} }
+  };
+  let logoImg=null, logoSrc=null, logoFromUpload=false, logoCleared=false;
+
+  function applySettings(s){
+    const v = Object.assign({}, CFG, s); v.colors = Object.assign({}, CFG.colors, s.colors||{});
+    for(const id of FIELDS.text) $(id).value = v[id] ?? "";
+    for(const id of ["lang","logoMode","logoLayer"]) $(id).value = v[id];
+    for(const id of ["sec","finish","res"]) if(v[id]!=null) $(id).value = v[id];
+    for(const id of ["hidden","frame","corner"]) $(id).checked = !!v[id];
+    $("showPw").checked = v.showPw ?? true;
+    for(const id of FIELDS.num) if(v[id]!=null) $(id).value = v[id];
+    for(const [id,key] of Object.entries(FIELDS.color)) $(id).value = v.colors[key];
+    logoFromUpload = !!s.logoData; logoCleared = s.logo===null && !s.logoData;
+    return s.logoData || v.logo || null;
+  }
+  let saveTimer=0;
+  function saveSoon(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{
+    const s={colors:{}};
+    for(const id of [...FIELDS.text,...FIELDS.select,...FIELDS.num]) s[id]=$(id).value;
+    for(const id of FIELDS.check) s[id]=$(id).checked;
+    for(const [id,key] of Object.entries(FIELDS.color)) s.colors[key]=$(id).value;
+    if(logoFromUpload && logoSrc) s.logoData=logoSrc;
+    if(logoCleared) s.logo=null;
+    if(!store.set(s) && s.logoData){ delete s.logoData; store.set(s); }
+  },300); }
+
+  function loadLogo(src){
+    logoImg=null; logoSrc=null;
+    if(!src){ $("logoState").textContent="ロゴなし（Wi-Fi アイコンを表示）"; render(); return; }
+    const img=new Image();
+    img.onload=()=>{ logoImg=img; logoSrc=src; $("logoState").textContent = logoFromUpload?"読み込んだロゴを使用中":"サイト既定のロゴを使用中"; render(); };
+    img.onerror=()=>{ $("logoState").textContent="ロゴを読み込めませんでした（Wi-Fi アイコンを表示）"; render(); };
+    img.src=src;
+  }
+
+  /* ---------- パスワード生成 ---------- */
+  const WORDS=["Apple","Breeze","Cedar","Delta","Ember","Falcon","Garnet","Harbor","Iris","Jasper","Kite","Lumen","Maple","Nova",
+    "Orbit","Pebble","Quartz","River","Summit","Tide","Umber","Violet","Willow","Yonder","Zephyr","Amber","Birch","Cobalt","Dune",
+    "Fjord","Grove","Haze","Indigo","Juniper","Koi","Lotus","Meadow","Nimbus","Opal","Prism","Raven","Sable","Topaz","Vapor",
+    "Wren","Aspen","Bloom","Comet","Drift","Echo","Flint","Glade","Heron","Ivory"];
+  const UPPER="ABCDEFGHIJKLMNOPQRSTUVWXYZ",LOWER="abcdefghijklmnopqrstuvwxyz",DIGIT="0123456789",SYMS="!#%+-=?@_",AMB=/[0O1lIo]/g;
+  function randInt(n){const lim=Math.floor(0x100000000/n)*n,b=new Uint32Array(1);do{crypto.getRandomValues(b);}while(b[0]>=lim);return b[0]%n;}
+  const pick=s=>s[randInt(s.length)];
+  const genWords=()=>{const sep=pick("-._");return [pick(WORDS),pick(WORDS),pick(WORDS)].join(sep)+sep+(randInt(9000)+1000)+($("sym").checked?pick("!#%?"):"");};
+  function genRandom(len){
+    const amb=$("noAmb").checked,clean=s=>amb?s.replace(AMB,""):s;
+    const sets=[clean(UPPER),clean(LOWER),clean(DIGIT)];if($("sym").checked)sets.push(SYMS);
+    const all=sets.join(""),out=sets.map(pick);while(out.length<len)out.push(pick(all));
+    for(let i=out.length-1;i>0;i--){const j=randInt(i+1);[out[i],out[j]]=[out[j],out[i]];}
+    return out.join("");
+  }
+  function entropyBits(mode,pw){
+    if(mode==="words")return Math.round(3*Math.log2(WORDS.length)+Math.log2(3)+Math.log2(9000)+($("sym").checked?2:0));
+    let pool=0;if(/[a-z]/.test(pw))pool+=26;if(/[A-Z]/.test(pw))pool+=26;if(/[0-9]/.test(pw))pool+=10;if(/[^A-Za-z0-9]/.test(pw))pool+=10;
+    return Math.round(pw.length*Math.log2(Math.max(pool,1)));
+  }
+  const mode=()=>document.querySelector('input[name=mode]:checked').value;
+  function regen(){const m=mode();if(m==="words")$("pw").value=genWords();else if(m==="random")$("pw").value=genRandom(+$("len").value);render();}
+
+  /* ---------- QR ---------- */
+  const esc=s=>s.replace(/([\\;,:"])/g,"\\$1");
+  function payload(){
+    const sec=$("sec").value;let p="WIFI:T:"+sec+";S:"+esc($("ssid").value)+";";
+    if(sec!=="nopass")p+="P:"+esc($("pw").value)+";";
+    if($("hidden").checked)p+="H:true;";
+    return p+";";
+  }
+  let lastQr=null;
+  function buildQr(text){
+    if(typeof qrcode==="undefined")return null;
+    if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"])qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];
+    const qr=qrcode(0,"M");qr.addData(text,"Byte");qr.make();return qr;
+  }
+  function qrSvg(qr,margin=2,bg="#fff"){
+    const n=qr.getModuleCount(),size=n+margin*2;let d="";
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))d+=`M${c+margin} ${r+margin}h1v1h-1z`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path d="${d}" fill="#000"/></svg>`;
+  }
+
+  /* ---------- ロゴのマスク化 ---------- */
+  const logoAspect=()=>logoImg?((logoImg.naturalWidth||300)/(logoImg.naturalHeight||100)):1;
+  function logoMask(w,h){
+    const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d");
+    g.drawImage(logoImg,0,0,w,h);const d=g.getImageData(0,0,w,h).data,m=new Uint8Array(w*h),light=$("logoMode").value==="light";
+    for(let i=0;i<w*h;i++){const a=d[i*4+3];if(a<128)continue;
+      if(light){const l=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];if(l>=160)continue;}m[i]=1;}
+    return m;
+  }
+  function maskToCanvas(m,w,h,hex){
+    const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d"),img=g.createImageData(w,h);
+    const r=parseInt(hex.substr(1,2),16),gg=parseInt(hex.substr(3,2),16),b=parseInt(hex.substr(5,2),16);
+    for(let i=0;i<w*h;i++)if(m[i]){img.data[i*4]=r;img.data[i*4+1]=gg;img.data[i*4+2]=b;img.data[i*4+3]=255;}
+    g.putImageData(img,0,0);return c;
+  }
+
+  /* ---------- 画面のカード ---------- */
+  const LBL={en:{net:"NETWORK",pw:"PASSWORD",scan:"SCAN TO CONNECT"},ja:{net:"ネットワーク",pw:"パスワード",scan:"カメラで読み取って接続"}};
+  const showPwOn=()=>$("showPw").checked&&$("sec").value!=="nopass";
+  const colors=()=>({base:$("cBase").value,white:$("cWhite").value,a1:$("cA1").value,a2:$("cA2").value});
+
+  function render(){
+    const m=mode(),sec=$("sec").value,L=LBL[$("lang").value],C=colors(),root=document.documentElement.style;
+    root.setProperty("--c-base",C.base);root.setProperty("--c-white",C.white);root.setProperty("--c-a1",C.a1);root.setProperty("--c-a2",C.a2);
+    $("pw").readOnly=m!=="manual";
+    $("lenLabel").style.display=m==="random"?"":"none";
+    $("ambWrap").style.display=m==="random"?"":"none";
+    $("symWrap").style.display=m==="manual"?"none":"";
+    $("lenVal").textContent=$("len").value;
+    $("pwset").disabled=sec==="nopass";
+    const pw=$("pw").value;
+    let warn="";if(sec==="WPA"&&pw.length&&(pw.length<8||pw.length>63))warn="WPA のパスワードは 8〜63 文字です。";
+    $("strength").textContent=sec==="nopass"?"":(warn||`推定強度: 約 ${entropyBits(m,pw)} bit`);
+    $("cTitle").textContent=$("title").value;
+    $("cSsid").textContent=$("ssid").value;
+    $("cPw").textContent=pw;
+    $("cNetL").textContent=L.net;$("cPwL").textContent=L.pw;$("cScan").textContent=L.scan;
+    $("cPwBlock").style.display=showPwOn()?"":"none";
+    $("cFoot").textContent=$("foot").value;
+    $("card").classList.toggle("framed",$("frame").checked);
+    $("cCorner").hidden=!$("corner").checked;
+    $("cIcon").style.display=logoImg?"none":"";
+    const lc=$("cLogo");lc.hidden=!logoImg;
+    if(logoImg){
+      const h=160,w=Math.max(1,Math.round(h*Math.min(logoAspect(),3.75)));
+      const src=maskToCanvas(logoMask(w,h),w,h,C[$("logoLayer").value]);
+      lc.width=w;lc.height=h;lc.getContext("2d").drawImage(src,0,0);
+    }
+    const p=payload();$("payload").textContent=p;
+    lastQr=buildQr(p);
+    $("qr").innerHTML=lastQr?qrSvg(lastQr,2,C.white):"QRライブラリを読み込めませんでした";
+    $("legend").innerHTML=LAYERS.map(c=>`<li><span class="sw" style="background:${C[c.ckey]}"></span>フィラメント${c.fil}: ${c.name}</li>`).join("");
+    schedulePreview();saveSoon();
+  }
+
+  /* ---------- 3D: ラスタライズ（mm 座標・幅150基準） ---------- */
+  const SANS='"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",sans-serif',MONO='"IBM Plex Mono",Menlo,Consolas,monospace';
+  const LAYERS=[{key:"plate",ckey:"base",name:"土台",fil:1},{key:"white",ckey:"white",name:"白（文字・QR）",fil:2},
+    {key:"a1",ckey:"a1",name:"アクセント1",fil:3},{key:"a2",ckey:"a2",name:"アクセント2",fil:4}];
+
+  function opts(){
+    const num=(id,lo,hi,d)=>{const v=parseFloat($(id).value);return isFinite(v)?Math.min(hi,Math.max(lo,v)):d;};
+    return {W:num("cw",100,220,150),T:num("ct",2,6,3),h:num("ch",0.4,1.2,0.6),finish:$("finish").value,res:+$("res").value};
+  }
+  async function loadFonts(){
+    const txt=[$("title").value,$("ssid").value,$("foot").value,LBL.ja.net,LBL.ja.pw,LBL.ja.scan,LBL.en.scan].join("");
+    try{await Promise.all([document.fonts.load(`700 40px ${SANS}`,txt),document.fonts.load(`600 40px ${MONO}`,$("pw").value||"A")]);}catch(e){}
+  }
+
+  async function rasterize(W,res){
+    await loadFonts();
+    const k=W/150,H=W*94/150,w=Math.round(W*res),h=Math.round(H*res),S=v=>v*k*res;
+    const layer=()=>{const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d");
+      g.fillStyle=g.strokeStyle="#fff";g.lineJoin=g.lineCap="round";g.textBaseline="alphabetic";return g;};
+    const rr=(g,x,y,ww,hh,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+ww,y,x+ww,y+hh,r);g.arcTo(x+ww,y+hh,x,y+hh,r);g.arcTo(x,y+hh,x,y,r);g.arcTo(x,y,x+ww,y,r);g.closePath();};
+    const text=(g,s,x,y,size,weight,fam,maxW,align="left")=>{
+      if(!s||maxW<=0)return;let px=S(size);g.font=`${weight} ${px}px ${fam}`;
+      const mw=g.measureText(s).width;if(mw>S(maxW)){px*=S(maxW)/mw;g.font=`${weight} ${px}px ${fam}`;}
+      g.textAlign=align;g.fillText(s,S(x),S(y));
+    };
+    const L=LBL[$("lang").value],corner=$("corner").checked;
+    const G={plate:layer(),white:layer(),a1:layer(),a2:layer()};
+
+    rr(G.plate,0,0,w,h,S(8));G.plate.fill();
+    if($("frame").checked){G.a1.lineWidth=S(1.2);rr(G.a1,S(3),S(3),w-2*S(3),h-2*S(3),S(5.5));G.a1.stroke();}
+    if(corner){const g=G.a2;g.lineWidth=S(1.4);g.beginPath();g.moveTo(S(124),S(8));g.lineTo(S(136),S(8));g.lineTo(S(141),S(13));g.lineTo(S(141),S(18));g.stroke();}
+
+    // 見出し行: ロゴ（高さ12mm枠）または Wi-Fi アイコン + 見出し
+    let headR;
+    if(logoImg){
+      const asp=logoAspect(),lw=Math.min(12*asp,45),lh=lw/asp;
+      const pw=Math.max(1,Math.round(S(lw))),ph=Math.max(1,Math.round(S(lh)));
+      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(10)),Math.round(S(10+(12-lh)/2)));
+      headR=10+lw;
+    }else{
+      const g=G.a1;g.lineWidth=S(1.6);
+      for(const r of [3,6,9]){g.beginPath();g.arc(S(16),S(21.5),S(r),-Math.PI*0.75,-Math.PI*0.25);g.stroke();}
+      g.beginPath();g.arc(S(16),S(21.5),S(1.4),0,Math.PI*2);g.fill();
+      headR=24;
+    }
+    text(G.white,$("title").value,headR+4,20,7,700,SANS,(corner?121:138)-(headR+4));
+
+    text(G.a1,L.net,12,37,4.2,700,SANS,74);
+    text(G.white,$("ssid").value,12,46.5,7.5,700,SANS,74);
+    if(showPwOn()){text(G.a2,L.pw,12,57,4.2,700,SANS,74);text(G.white,$("pw").value,12,66,6.5,600,MONO,74);}
+    if($("foot").value){G.a1.beginPath();G.a1.arc(S(13.6),S(82.6),S(1.2),0,Math.PI*2);G.a1.fill();text(G.white,$("foot").value,17,84,4,700,SANS,69);}
+    text(G.white,L.scan,115,84,3.8,700,SANS,50,"center");
+
+    let moduleMm=0;
+    const px=Math.round(S(90)),py=Math.round(S(24)),P=Math.round(S(50));
+    rr(G.white,px,py,P,P,S(2));G.white.fill();
+    if(lastQr){
+      const n=lastQr.getModuleCount(),m=Math.floor(P/(n+4)),off=Math.floor((P-m*n)/2);moduleMm=m/res;
+      G.white.globalCompositeOperation="destination-out";
+      for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(lastQr.isDark(r,c))G.white.fillRect(px+off+c*m,py+off+r*m,m,m);
+      G.white.globalCompositeOperation="source-over";
+    }
+
+    const toMask=g=>{const d=g.getImageData(0,0,w,h).data,mk=new Uint8Array(w*h);for(let i=0;i<w*h;i++)mk[i]=d[i*4+3]>127?1:0;return mk;};
+    const M={plate:toMask(G.plate),white:toMask(G.white),a1:toMask(G.a1),a2:toMask(G.a2)};
+    for(let i=0;i<w*h;i++){
+      if(!M.plate[i]){M.white[i]=M.a1[i]=M.a2[i]=0;continue;}
+      if(M.white[i]){M.a1[i]=M.a2[i]=0;}else if(M.a1[i])M.a2[i]=0;
+    }
+    return {w,h,W,H,res,M,moduleMm};
+  }
+
+  /* ---------- 3D プレビュー ---------- */
+  let pvTimer=0;
+  function schedulePreview(){clearTimeout(pvTimer);pvTimer=setTimeout(drawPreview,200);}
+  async function drawPreview(){
+    const o=opts(),R=await rasterize(o.W,4),cv=$("pv"),C=colors();
+    cv.width=R.w;cv.height=R.h;
+    const g=cv.getContext("2d"),img=g.createImageData(R.w,R.h),rgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+    const col={plate:rgb(C.base),white:rgb(C.white),a1:rgb(C.a1),a2:rgb(C.a2)};
+    for(let i=0;i<R.w*R.h;i++){
+      const key=R.M.white[i]?"white":R.M.a1[i]?"a1":R.M.a2[i]?"a2":R.M.plate[i]?"plate":null;
+      if(key){const c=col[key];img.data[i*4]=c[0];img.data[i*4+1]=c[1];img.data[i*4+2]=c[2];img.data[i*4+3]=255;}
+    }
+    g.putImageData(img,0,0);
+    const total=o.finish==="flat"?o.T:o.T+o.h;
+    let msg=`${o.W.toFixed(0)} × ${R.H.toFixed(1)} mm、厚さ ${total.toFixed(1)} mm。`;
+    if(R.moduleMm&&R.moduleMm<1.0)msg+=` QRのセルが ${R.moduleMm.toFixed(2)} mm と小さめです。カード幅を広げると読み取りが安定します。`;
+    else if(R.moduleMm)msg+=` QRのセルは約 ${R.moduleMm.toFixed(2)} mm。`;
+    $("status").textContent=msg;
+    $("howto").textContent=o.finish==="flat"
+      ?"フラット: 色は上面の色層だけに入ります。3MF をそのまま開くか、色別STLを同時に読み込んで「1つのオブジェクトの複数パーツ」として扱い、各パーツにフィラメントを割り当ててください。"
+      :`浮き彫り: 「色替え用STL」を使い、高さ ${o.T.toFixed(2)} mm でフィラメント交換（一時停止）を入れると、土台と、文字・QR・ロゴの2色になります。マルチカラー機なら3MF/色別STLで4色にできます。`;
+  }
+
+  /* ---------- メッシュ生成（ハイトフィールド → 三角形） ---------- */
+  function meshHF(w,h,res,top,zb,xf){
+    const verts=[],tris=[],map=new Map(),Y=j=>(h-j)/res;
+    const vtx=(i,j,z)=>{const key=i+","+j+","+z;let id=map.get(key);
+      if(id===undefined){id=verts.length/3;const p=xf?xf(i/res,Y(j),z):[i/res,Y(j),z];verts.push(p[0],p[1],p[2]);map.set(key,id);}return id;};
+    const quad=(a,b,c,d)=>tris.push(a,b,c,a,c,d);
+    const Hh=(i,j)=>(i<0||j<0||i>=w||j>=h)?zb:(top[j*w+i]>0?top[j*w+i]:zb);
+    function rects(val,emit){
+      let active=new Map();
+      for(let j=0;j<=h;j++){
+        const next=new Map();
+        if(j<h){let i=0;while(i<w){const v=val(j*w+i);if(!v){i++;continue;}const a=i;while(i<w&&val(j*w+i)===v)i++;
+          const key=a+","+i+","+v,prev=active.get(key);
+          if(prev){next.set(key,prev);active.delete(key);}else next.set(key,{a,b:i,v,j0:j});}}
+        for(const r of active.values())emit(r.a,r.b,r.v,r.j0,j);
+        active=next;
+      }
+    }
+    rects(p=>top[p],(a,b,t,j0,j1)=>quad(vtx(a,j1,t),vtx(b,j1,t),vtx(b,j0,t),vtx(a,j0,t)));
+    rects(p=>top[p]>0?1:0,(a,b,_,j0,j1)=>quad(vtx(a,j0,zb),vtx(b,j0,zb),vtx(b,j1,zb),vtx(a,j1,zb)));
+    for(let j=0;j<=h;j++){let i=0;while(i<w){const ta=Hh(i,j-1),tb=Hh(i,j);if(ta===tb){i++;continue;}
+      const a=i;while(i<w&&Hh(i,j-1)===ta&&Hh(i,j)===tb)i++;const lo=Math.min(ta,tb),hi=Math.max(ta,tb);
+      if(tb>ta)quad(vtx(i,j,lo),vtx(a,j,lo),vtx(a,j,hi),vtx(i,j,hi));else quad(vtx(a,j,lo),vtx(i,j,lo),vtx(i,j,hi),vtx(a,j,hi));}}
+    for(let i=0;i<=w;i++){let j=0;while(j<h){const tl=Hh(i-1,j),tr=Hh(i,j);if(tl===tr){j++;continue;}
+      const a=j;while(j<h&&Hh(i-1,j)===tl&&Hh(i,j)===tr)j++;const lo=Math.min(tl,tr),hi=Math.max(tl,tr);
+      if(tl>tr)quad(vtx(i,j,lo),vtx(i,a,lo),vtx(i,a,hi),vtx(i,j,hi));else quad(vtx(i,a,lo),vtx(i,j,lo),vtx(i,j,hi),vtx(i,a,hi));}}
+    return {verts,tris};
+  }
+
+  async function cardParts(o,finish){
+    const R=await rasterize(o.W,o.res),n=R.w*R.h,T=+o.T.toFixed(3),hc=+o.h.toFixed(3),parts=[];
+    const colorAt=i=>R.M.white[i]||R.M.a1[i]||R.M.a2[i];
+    const zc0=+(finish==="flat"?T-hc:T).toFixed(3),zc1=+(finish==="flat"?T:T+hc).toFixed(3);
+    const plateTop=new Float32Array(n);
+    for(let i=0;i<n;i++)if(R.M.plate[i])plateTop[i]=(finish==="flat"&&colorAt(i))?zc0:T;
+    parts.push({...LAYERS[0],...meshHF(R.w,R.h,R.res,plateTop,0)});
+    for(const c of LAYERS.slice(1)){
+      const t=new Float32Array(n);let any=false;
+      for(let i=0;i<n;i++)if(R.M[c.key][i]){t[i]=zc1;any=true;}
+      if(any)parts.push({...c,...meshHF(R.w,R.h,R.res,t,zc0)});
+    }
+    return parts;
+  }
+
+  function standPart(o){
+    const thick=(o.finish==="flat"?o.T:o.T+o.h)+0.4,D=22,Hs=14,depth=9,Lx=40,res=o.res;
+    const w=Math.round(D*res),h=Math.round(Hs*res),top=new Float32Array(w*h);
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+      const u=(i+.5)/res,v=(h-j-.5)/res;
+      if(!(Math.abs(u-D/2)<thick/2&&v>Hs-depth))top[j*w+i]=Lx;
+    }
+    const a=meshHF(w,h,res,top,0,(u,v,z)=>[z,u,v]),b=meshHF(w,h,res,top,0,(u,v,z)=>[z,u+D+6,v]),off=a.verts.length/3;
+    return [{key:"stand",fil:1,verts:a.verts.concat(b.verts),tris:a.tris.concat(b.tris.map(t=>t+off))}];
+  }
+
+  /* ---------- 書き出し ---------- */
+  function stl(parts){
+    let nt=0;for(const p of parts)nt+=p.tris.length/3;
+    const buf=new ArrayBuffer(84+50*nt),dv=new DataView(buf),hdr="wifi-card generator";
+    for(let i=0;i<hdr.length;i++)dv.setUint8(i,hdr.charCodeAt(i));
+    dv.setUint32(80,nt,true);let o=84;
+    for(const p of parts){const V=p.verts,Tr=p.tris;
+      for(let t=0;t<Tr.length;t+=3){
+        const a=Tr[t]*3,b=Tr[t+1]*3,c=Tr[t+2]*3;
+        const ux=V[b]-V[a],uy=V[b+1]-V[a+1],uz=V[b+2]-V[a+2],vx=V[c]-V[a],vy=V[c+1]-V[a+1],vz=V[c+2]-V[a+2];
+        const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,l=Math.hypot(nx,ny,nz)||1;
+        dv.setFloat32(o,nx/l,true);dv.setFloat32(o+4,ny/l,true);dv.setFloat32(o+8,nz/l,true);o+=12;
+        for(const k of [a,b,c]){dv.setFloat32(o,V[k],true);dv.setFloat32(o+4,V[k+1],true);dv.setFloat32(o+8,V[k+2],true);o+=12;}
+        o+=2;
+      }}
+    return new Uint8Array(buf);
+  }
+  function model3mf(parts){
+    const f=n=>+n.toFixed(4),vs=[],ts=[],vols=[];let vo=0,to=0;
+    for(const p of parts){
+      for(let i=0;i<p.verts.length;i+=3)vs.push(`<vertex x="${f(p.verts[i])}" y="${f(p.verts[i+1])}" z="${f(p.verts[i+2])}"/>`);
+      for(let i=0;i<p.tris.length;i+=3)ts.push(`<triangle v1="${p.tris[i]+vo}" v2="${p.tris[i+1]+vo}" v3="${p.tris[i+2]+vo}"/>`);
+      const nt=p.tris.length/3;vols.push({first:to,last:to+nt-1,name:p.key,fil:p.fil});vo+=p.verts.length/3;to+=nt;
+    }
+    const te=new TextEncoder();
+    const model=`<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">
+<metadata name="slic3rpe:Version3mf">1</metadata>
+<metadata name="Title">wifi-card</metadata>
+<resources><object id="1" type="model"><mesh><vertices>
+${vs.join("\n")}
+</vertices><triangles>
+${ts.join("\n")}
+</triangles></mesh></object></resources>
+<build><item objectid="1"/></build>
+</model>`;
+    const cfg=`<?xml version="1.0" encoding="UTF-8"?>
+<config>
+<object id="1" instances_count="1">
+<metadata type="object" key="name" value="wifi-card"/>
+${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
+<metadata type="volume" key="name" value="${v.name}"/>
+<metadata type="volume" key="volume_type" value="ModelPart"/>
+<metadata type="volume" key="extruder" value="${v.fil}"/>
+</volume>`).join("\n")}
+</object>
+</config>`;
+    return [
+      ["[Content_Types].xml",te.encode(`<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="config" ContentType="text/xml"/></Types>`)],
+      ["_rels/.rels",te.encode(`<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>`)],
+      ["3D/3dmodel.model",te.encode(model)],
+      ["Metadata/Slic3r_PE_model.config",te.encode(cfg)]
+    ];
+  }
+  const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+  const crc32=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;};
+  async function deflate(u){
+    try{if(!("CompressionStream" in window))return null;
+      const s=new Blob([u]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+      return new Uint8Array(await new Response(s).arrayBuffer());}catch(e){return null;}
+  }
+  async function zip(files){
+    const te=new TextEncoder(),chunks=[],central=[];let off=0;
+    for(const [name,data] of files){
+      const nm=te.encode(name),crc=crc32(data),comp=await deflate(data),method=comp?8:0,body=comp||data;
+      const lh=new DataView(new ArrayBuffer(30));
+      lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,method,true);
+      lh.setUint16(12,33,true);lh.setUint32(14,crc,true);lh.setUint32(18,body.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nm.length,true);
+      chunks.push(new Uint8Array(lh.buffer),nm,body);
+      const ch=new DataView(new ArrayBuffer(46));
+      ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,method,true);
+      ch.setUint16(14,33,true);ch.setUint32(16,crc,true);ch.setUint32(20,body.length,true);ch.setUint32(24,data.length,true);
+      ch.setUint16(28,nm.length,true);ch.setUint32(42,off,true);
+      central.push(new Uint8Array(ch.buffer),nm);
+      off+=30+nm.length+body.length;
+    }
+    const cdSize=central.reduce((s,c)=>s+c.length,0),end=new DataView(new ArrayBuffer(22));
+    end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);
+    end.setUint32(12,cdSize,true);end.setUint32(16,off,true);
+    return new Blob([...chunks,...central,new Uint8Array(end.buffer)]);
+  }
+  function download(name,blob){
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  }
+  const fileBase=()=>"wifi-"+($("ssid").value||"card").replace(/[^\w\-]+/g,"_");
+  const triCount=parts=>parts.reduce((s,p)=>s+p.tris.length/3,0).toLocaleString();
+  const exportBtns=["dl3mf","dlZip","dlMono","dlStand"];
+  async function run(label,fn){
+    exportBtns.forEach(id=>$(id).disabled=true);
+    $("status").textContent=label+"を作成中…";
+    await new Promise(r=>setTimeout(r,30));
+    try{$("status").textContent=await fn();}
+    catch(e){console.error(e);$("status").textContent="作成に失敗しました: "+e.message;}
+    finally{exportBtns.forEach(id=>$(id).disabled=false);}
+  }
+  $("dl3mf").onclick=()=>run("3MF",async()=>{
+    const o=opts(),parts=await cardParts(o,o.finish);
+    download(fileBase()+".3mf",await zip(model3mf(parts)));
+    return `3MF を保存しました（${parts.length} パーツ、三角形 ${triCount(parts)} 個）。`;
+  });
+  $("dlZip").onclick=()=>run("色別STL",async()=>{
+    const o=opts(),parts=await cardParts(o,o.finish);
+    download(fileBase()+"_stl.zip",await zip(parts.map(p=>[`${fileBase()}_${p.fil}_${p.key}.stl`,stl([p])])));
+    return `色別STLを保存しました（${parts.map(p=>p.key).join(" / ")}）。`;
+  });
+  $("dlMono").onclick=()=>run("色替え用STL",async()=>{
+    const o=opts(),parts=await cardParts(o,"raised");
+    download(fileBase()+"_colorchange.stl",new Blob([stl(parts)]));
+    return `色替え用STLを保存しました。高さ ${o.T.toFixed(2)} mm でフィラメントを交換してください。`;
+  });
+  $("dlStand").onclick=()=>run("スタンドSTL",async()=>{
+    const o=opts();download(fileBase()+"_stand.stl",new Blob([stl(standPart(o))]));
+    return `スタンド2個を保存しました（溝幅 ${((o.finish==="flat"?o.T:o.T+o.h)+0.4).toFixed(1)} mm）。`;
+  });
+
+  /* ---------- 2D 書き出し・印刷 ---------- */
+  $("dlSvg").onclick=()=>lastQr&&download(fileBase()+".svg",new Blob([qrSvg(lastQr)],{type:"image/svg+xml"}));
+  $("dlPng").onclick=()=>{
+    if(!lastQr)return;const n=lastQr.getModuleCount(),m=4,sc=16,size=(n+m*2)*sc;
+    const cv=document.createElement("canvas");cv.width=cv.height=size;const g=cv.getContext("2d");
+    g.fillStyle="#fff";g.fillRect(0,0,size,size);g.fillStyle="#000";
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(lastQr.isDark(r,c))g.fillRect((c+m)*sc,(r+m)*sc,sc,sc);
+    cv.toBlob(b=>download(fileBase()+".png",b),"image/png");
+  };
+  $("copyPw").onclick=async()=>{
+    try{await navigator.clipboard.writeText($("pw").value);$("copyPw").textContent="コピーしました";}
+    catch{$("copyPw").textContent="コピーできませんでした";}
+    setTimeout(()=>$("copyPw").textContent="パスワードをコピー",1500);
+  };
+  $("print").onclick=()=>window.print();
+  $("regen").onclick=regen;
+
+  /* ---------- ロゴ操作・リセット ---------- */
+  $("logoFile").addEventListener("change",e=>{
+    const file=e.target.files[0];if(!file)return;
+    const r=new FileReader();r.onload=()=>{logoFromUpload=true;logoCleared=false;loadLogo(r.result);};r.readAsDataURL(file);
+  });
+  $("logoClear").onclick=()=>{logoFromUpload=false;logoCleared=true;$("logoFile").value="";loadLogo(null);};
+  $("reset").onclick=()=>{store.clear();logoCleared=false;$("logoFile").value="";loadLogo(applySettings({}));};
+
+  document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener("change",()=>mode()==="manual"?render():regen()));
+  ["len","noAmb","sym"].forEach(id=>$(id).addEventListener("input",()=>mode()!=="manual"?regen():render()));
+  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","cBase","cWhite","cA1","cA2",
+   "finish","cw","ct","ch","res"].forEach(id=>$(id).addEventListener("input",render));
+
+  const initialLogo=applySettings(store.get());
+  regen();
+  loadLogo(initialLogo);
+})();
+</script>
+</body>
+</html>
