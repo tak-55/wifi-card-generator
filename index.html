@@ -610,8 +610,9 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(!V3.card)return;
     const tr=(p,f)=>{const v=[];for(let i=0;i<p.verts.length;i+=3)v.push(...f(p.verts[i],p.verts[i+1],p.verts[i+2]));return {...p,verts:v};};
     const asm=document.querySelector('input[name=v3mode]:checked').value==="assembled",st=V3.stand,xs=asm?[22,78]:[20,90];
-    const card=asm?V3.card.map(p=>tr(p,(x,y,z)=>[x,11+V3.T/2-z,5+y])):V3.card;
-    const clips=xs.map(x=>tr(st,(a,b,c)=>[a+x,asm?b:b-30,c]));
+    const {ub,vb,th}=STAND,sn=Math.sin(th),cs=Math.cos(th),
+      card=asm?V3.card.map(p=>tr(p,(x,y,z)=>{const n=V3.T/2-z;return [x,ub+y*sn+n*cs,vb+y*cs-n*sn];})):V3.card;
+    const clips=xs.map(x=>tr(st,(a,b,c)=>[a+x,asm?b:b-STAND.D-8,c]));
     $("v3note").textContent=(asm?"組み立て: カードをスタンド2個の溝に差した状態。":"書き出し形状: 3MF/STL のカードと、スタンドSTL（2個）をそのまま並べています。")+"ドラッグで回転、ホイールで拡大・縮小";
     v3set(card.concat(clips),colors());
   }
@@ -637,7 +638,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(!w||!h)return;
     if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
     gl.viewport(0,0,w,h);gl.clearColor(.914,.929,.945,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-    const d=V3.r*2.6*V3.zoom,cp=Math.cos(V3.pitch),c=V3.c,eye=[c[0]+d*cp*Math.sin(V3.yaw),c[1]-d*cp*Math.cos(V3.yaw),c[2]+d*Math.sin(V3.pitch)];
+    const d=V3.r*3.1*V3.zoom,cp=Math.cos(V3.pitch),c=V3.c,eye=[c[0]+d*cp*Math.sin(V3.yaw),c[1]-d*cp*Math.cos(V3.yaw),c[2]+d*Math.sin(V3.pitch)];
     const f=v3norm(v3sub(c,eye)),s=v3norm(v3cross(f,[0,0,1])),u=v3cross(s,f);
     const view=[s[0],u[0],-f[0],0,s[1],u[1],-f[1],0,s[2],u[2],-f[2],0,-v3dot(s,eye),-v3dot(u,eye),v3dot(f,eye),1];
     const N=V3.r*.1,F=V3.r*20,k=1/Math.tan(.31),a=w/h;
@@ -655,13 +656,15 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   v3init();addEventListener("resize",v3draw);
   document.querySelectorAll("input[name=v3mode]").forEach(e=>e.onchange=v3scene);
 
+  // スタンド断面（u=奥行, v=高さ）。前が低く後ろが高いスロープに、後ろへ th だけ傾けた溝を切る。これを Lx だけ押し出す
+  const STAND={D:30,Hs:16,vb:4,ub:14,th:10*Math.PI/180,Lx:40};
   function standPart(o,single){
-    const thick=(o.finish==="flat"?o.T:o.T+o.h)+0.4,D=22,Hs=14,depth=9,Lx=40,res=o.res;
-    const w=Math.round(D*res),h=Math.round(Hs*res),top=new Float32Array(w*h);
+    const {D,Hs,vb,ub,th,Lx}=STAND,thick=(o.finish==="flat"?o.T:o.T+o.h)+0.4,res=o.res;
+    const w=Math.round(D*res),h=Math.round(Hs*res),top=new Float32Array(w*h),sn=Math.sin(th),cs=Math.cos(th);
     for(let j=0;j<h;j++)for(let i=0;i<w;i++){
-      const u=(i+.5)/res,v=(h-j-.5)/res;
-      const rc=5,cu=u<rc?rc:u>D-rc?D-rc:u,out=v>Hs-rc&&(u<rc||u>D-rc)&&Math.hypot(u-cu,v-(Hs-rc))>rc;
-      if(!out&&!(Math.abs(u-D/2)<thick/2&&v>Hs-depth))top[j*w+i]=Lx;
+      const u=(i+.5)/res,v=(h-j-.5)/res,vt=Hs-12*((D-u)/D)**2;
+      const flare=Math.max(0,v-(vt-2.5))*.35,slot=v>vb&&Math.abs((u-ub)*cs-(v-vb)*sn)<thick/2+flare;
+      if(v<vt&&!slot)top[j*w+i]=Lx;
     }
     const a=meshHF(w,h,res,top,0,(u,v,z)=>[z,u,v]),b=meshHF(w,h,res,top,0,(u,v,z)=>[z,u+D+6,v]),off=a.verts.length/3;
     if(single)return [{key:"stand",ckey:"base",fil:1,...a}];

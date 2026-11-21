@@ -52,7 +52,7 @@ A WebGL viewer (no dependencies) shows the exported meshes in color, either asse
 | 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). Contains one part per color, with filament assignments. |
 | Per-color STL (ZIP) | Slicers that don't split 3MF parts. Load all files together as one object with several parts. |
 | Color-change STL | Single-nozzle printers. One mesh, with a filament change at a set height. |
-| Stand STL | Two clips that hold the card upright, with rounded top edges. |
+| Stand STL | Two ramp-shaped clips that hold the card upright, leaning back about 10°. The slot has a flared mouth for easy insertion. |
 
 Finish options:
 
