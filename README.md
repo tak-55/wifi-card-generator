@@ -28,7 +28,7 @@ The images above use a dummy password (`Sample-Pass-2026`).
 
 ### Card design
 
-- Card (150 × 94 mm by default) with a large rounded bottom-right corner and three concentric "signal" arcs radiating from the bottom-left corner. The QR code sits on the left; the SSID and the password (on a colored pill) are on the right.
+- Card (150 × 94 mm by default) with all four corners rounded (extra large at the bottom right) and three concentric "signal" arcs radiating from the bottom-left corner. The QR code sits on the left; the SSID and the password (on a colored pill) are on the right.
 - Your logo (SVG/PNG, transparent or white background) or a built-in Wi-Fi icon, plus a heading such as your company name.
 - Four colors you can change: base, white, and two accents.
 - English or Japanese labels, an optional outer frame, optional signal arcs, and an optional one-line note at the bottom (empty by default).
