@@ -59,11 +59,11 @@ button:hover:not(:disabled){filter:brightness(1.06)}
 
 .stage{display:grid;gap:16px;justify-items:center}
 .wifi-card{width:min(100%,640px);aspect-ratio:150/94;background:var(--c-base);color:var(--c-white);
-  border-radius:8% 8% 16% 8% / 12.766% 12.766% 25.532% 12.766%;
+  border-radius:8% / 12.766%;
   padding:5.5% 6% 8% 6.7%;position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;gap:2cqi 5%;align-items:center;
   container-type:inline-size;box-shadow:0 18px 40px -18px rgba(10,20,35,.55)}
 .wifi-card.framed::before{content:"";position:absolute;inset:3.191% 2%;border:2px solid var(--c-a1);pointer-events:none;
-  border-radius:6.25% 6.25% 14.58% 6.25% / 10.2% 10.2% 23.9% 10.2%}
+  border-radius:6.25% / 10.2%}
 /* 左下を中心にした電波の弧（半径 38/52/66 mm、幅 3 mm）。1 mm = 0.6667cqi */
 .wifi-card .corner{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 0 100%,
   transparent 0 24.33cqi,var(--c-a1) 24.33cqi 26.33cqi,transparent 26.33cqi 33.67cqi,var(--c-a1) 33.67cqi 35.67cqi,transparent 35.67cqi 43cqi,var(--c-a1) 43cqi 45cqi,transparent 45cqi)}
@@ -471,12 +471,12 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     const L=LBL[$("lang").value],corner=$("corner").checked;
     const G={plate:layer(),white:layer(),a1:layer(),a2:layer()};
 
-    rrc(G.plate,0,0,w,h,[S(12),S(12),S(24),S(12)]);G.plate.fill();
+    rrc(G.plate,0,0,w,h,[S(12),S(12),S(12),S(12)]);G.plate.fill();
     // 左下を中心にした電波の弧。キャプション用に弧を切り欠く
     if(corner){const g=G.a1;g.lineWidth=S(3);g.lineCap="butt";
       for(const r of [38,52,66]){g.beginPath();g.arc(0,S(94),S(r),-Math.PI/2,0);g.stroke();}
       g.globalCompositeOperation="destination-out";g.fillRect(S(10),S(73.5),S(50),S(8.5));g.globalCompositeOperation="source-over";g.lineCap="round";}
-    if($("frame").checked){G.a1.lineWidth=S(1.2);rrc(G.a1,S(3),S(3),S(144),S(88),[S(9),S(9),S(21),S(9)]);G.a1.stroke();}
+    if($("frame").checked){G.a1.lineWidth=S(1.2);rrc(G.a1,S(3),S(3),S(144),S(88),[S(9),S(9),S(9),S(9)]);G.a1.stroke();}
 
     // 見出し（ロゴ + タイトル）はカード全体の中央（x=75 mm）に置く
     const T=$("title").value,asp=logoImg?logoAspect():1,lw=logoImg?Math.min(10*asp,45):0,gap=logoImg?4:0,avail=126-lw-gap;
