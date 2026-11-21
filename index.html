@@ -184,6 +184,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
         <label class="check"><input type="checkbox" id="showPw" checked> カードにパスワードを表示</label>
         <label class="check"><input type="checkbox" id="frame"> 外枠</label>
         <label class="check"><input type="checkbox" id="corner"> 右上のアクセント</label>
+        <label class="check"><input type="checkbox" id="qrLogo"> QRの中央にロゴ（誤り訂正を高くします）</label>
       </fieldset>
 
       <fieldset>
@@ -269,13 +270,13 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   const $ = id => document.getElementById(id);
 
   /* ---------- 設定: 組み込み既定 ← config.js ← ブラウザ保存 ---------- */
-  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", ssid:"Guest WiFi", foot:"GUEST ACCESS",
+  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", qrLogo:false, ssid:"Guest WiFi", foot:"GUEST ACCESS",
     lang:"en", frame:true, corner:true, colors:{base:"#12312B",white:"#F5F0E6",a1:"#6FD3B0",a2:"#FF7A59"} };
   const CFG = Object.assign({}, BUILTIN, window.WIFI_CARD_CONFIG||{});
   CFG.colors = Object.assign({}, BUILTIN.colors, (window.WIFI_CARD_CONFIG||{}).colors||{});
   const STORE_KEY = "wifi-card-settings-v1";
   const FIELDS = { text:["ssid","title","foot"], select:["sec","lang","logoMode","logoLayer","finish","res"],
-    check:["hidden","showPw","frame","corner"], num:["cw","ct","ch"], color:{cBase:"base",cWhite:"white",cA1:"a1",cA2:"a2"} };
+    check:["hidden","showPw","frame","corner","qrLogo"], num:["cw","ct","ch"], color:{cBase:"base",cWhite:"white",cA1:"a1",cA2:"a2"} };
   const store = {
     get(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch{ return {}; } },
     set(v){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(v)); return true; }catch{ return false; } },
@@ -288,7 +289,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     for(const id of FIELDS.text) $(id).value = v[id] ?? "";
     for(const id of ["lang","logoMode","logoLayer"]) $(id).value = v[id];
     for(const id of ["sec","finish","res"]) if(v[id]!=null) $(id).value = v[id];
-    for(const id of ["hidden","frame","corner"]) $(id).checked = !!v[id];
+    for(const id of ["hidden","frame","corner","qrLogo"]) $(id).checked = !!v[id];
     $("showPw").checked = v.showPw ?? true;
     for(const id of FIELDS.num) if(v[id]!=null) $(id).value = v[id];
     for(const [id,key] of Object.entries(FIELDS.color)) $(id).value = v.colors[key];
@@ -351,12 +352,36 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   function buildQr(text){
     if(typeof qrcode==="undefined")return null;
     if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"])qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];
-    const qr=qrcode(0,"M");qr.addData(text,"Byte");qr.make();return qr;
+    const qr=qrcode(0,$("qrLogo").checked?"H":"M");qr.addData(text,"Byte");qr.make();return qr;
+  }
+  // 中央ロゴ用の空き領域（モジュール単位, 奇数）。誤り訂正Hで読めるよう一辺は全体の約27%
+  function qrClear(n){
+    if(!$("qrLogo").checked)return null;
+    let k=Math.round(n*.27);if(k%2===0)k++;const a=(n-k)/2;return {a,b:a+k};
+  }
+  function qrDark(qr,r,c){
+    const z=qrClear(qr.getModuleCount());
+    return qr.isDark(r,c)&&!(z&&r>=z.a&&r<z.b&&c>=z.a&&c<z.b);
+  }
+  // 中央に置く黒一色の図柄（ロゴ。なければ Wi-Fi アイコン）。px 四方のキャンバス
+  function qrMark(px){
+    const c=document.createElement("canvas");c.width=c.height=px;const g=c.getContext("2d");
+    if(logoImg){
+      const asp=logoAspect(),lw=asp>=1?px:Math.round(px*asp),lh=asp>=1?Math.round(px/asp):px;
+      g.drawImage(maskToCanvas(logoMask(lw,lh),lw,lh,"#000000"),Math.round((px-lw)/2),Math.round((px-lh)/2));
+    }else{
+      g.strokeStyle=g.fillStyle="#000";g.lineWidth=px*.08;g.lineCap="round";
+      for(const r of [.14,.28,.42]){g.beginPath();g.arc(px/2,px*.72,px*r,-Math.PI*.75,-Math.PI*.25);g.stroke();}
+      g.beginPath();g.arc(px/2,px*.72,px*.06,0,Math.PI*2);g.fill();
+    }
+    return c;
   }
   function qrSvg(qr,margin=2,bg="#fff"){
-    const n=qr.getModuleCount(),size=n+margin*2;let d="";
-    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))d+=`M${c+margin} ${r+margin}h1v1h-1z`;
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path d="${d}" fill="#000"/></svg>`;
+    const n=qr.getModuleCount(),size=n+margin*2,z=qrClear(n);let d="";
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qrDark(qr,r,c))d+=`M${c+margin} ${r+margin}h1v1h-1z`;
+    const k=z?z.b-z.a:0,s=k*.84,o=margin+z?.a+(k-s)/2;
+    const mark=z?`<image x="${o}" y="${o}" width="${s}" height="${s}" href="${qrMark(256).toDataURL()}"/>`:"";
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path d="${d}" fill="#000"/>${mark}</svg>`;
   }
 
   /* ---------- ロゴのマスク化 ---------- */
@@ -477,7 +502,9 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(lastQr){
       const n=lastQr.getModuleCount(),m=Math.floor(P/(n+4)),off=Math.floor((P-m*n)/2);moduleMm=m/res;
       G.white.globalCompositeOperation="destination-out";
-      for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(lastQr.isDark(r,c))G.white.fillRect(px+off+c*m,py+off+r*m,m,m);
+      for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qrDark(lastQr,r,c))G.white.fillRect(px+off+c*m,py+off+r*m,m,m);
+      const z=qrClear(n);
+      if(z){const k=(z.b-z.a)*m,sz=Math.round(k*.84),o=Math.round((k-sz)/2);G.white.drawImage(qrMark(sz),px+off+z.a*m+o,py+off+z.a*m+o);}
       G.white.globalCompositeOperation="source-over";
     }
 
@@ -762,7 +789,8 @@ ${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
     if(!lastQr)return;const n=lastQr.getModuleCount(),m=4,sc=16,size=(n+m*2)*sc;
     const cv=document.createElement("canvas");cv.width=cv.height=size;const g=cv.getContext("2d");
     g.fillStyle="#fff";g.fillRect(0,0,size,size);g.fillStyle="#000";
-    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(lastQr.isDark(r,c))g.fillRect((c+m)*sc,(r+m)*sc,sc,sc);
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qrDark(lastQr,r,c))g.fillRect((c+m)*sc,(r+m)*sc,sc,sc);
+    const z=qrClear(n);if(z){const k=(z.b-z.a)*sc,sz=Math.round(k*.84);g.drawImage(qrMark(sz),(m+z.a)*sc+Math.round((k-sz)/2),(m+z.a)*sc+Math.round((k-sz)/2));}
     cv.toBlob(b=>download(fileBase()+".png",b),"image/png");
   };
   $("copyPw").onclick=async()=>{
@@ -783,7 +811,7 @@ ${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
 
   document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener("change",()=>mode()==="manual"?render():regen()));
   ["len","noAmb","sym"].forEach(id=>$(id).addEventListener("input",()=>mode()!=="manual"?regen():render()));
-  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","cBase","cWhite","cA1","cA2",
+  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","qrLogo","cBase","cWhite","cA1","cA2",
    "finish","cw","ct","ch","res"].forEach(id=>$(id).addEventListener("input",render));
 
   const initialLogo=applySettings(store.get());
