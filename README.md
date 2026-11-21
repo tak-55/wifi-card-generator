@@ -50,7 +50,7 @@ A WebGL viewer (no dependencies) shows the exported meshes in color, either asse
 
 | Export | Use it for |
 | --- | --- |
-| 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). Contains one part per color, with filament assignments. |
+| 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). One object made of one part per color, with filament assignments (Bambu Studio / OrcaSlicer and PrusaSlicer metadata). |
 | Per-color STL (ZIP) | Slicers that don't split 3MF parts. Load all files together as one object with several parts. |
 | Color-change STL | Single-nozzle printers. One mesh, with a filament change at a set height. |
 | Stand STL | Two ramp-shaped clips that hold the card upright, leaning back about 10°. The slot has a flared mouth for easy insertion. |
@@ -71,7 +71,7 @@ Printing tips:
 
 - Thin strokes can get lost with a 0.4 mm nozzle. A card width of 150 mm or more is the safest. The page warns you when QR cells get smaller than 1 mm.
 - Check that the printed QR code scans before you put the card on display.
-- The 3MF uses PrusaSlicer's part metadata. Other slicers may need the per-color STL files.
+- The 3MF stores the colors as parts of a single object, with part names and filament numbers for Bambu Studio / OrcaSlicer and for PrusaSlicer. If your slicer shows one plain part, use the per-color STL files and load them together as one object with several parts.
 
 ## Customizing for your organization
 
