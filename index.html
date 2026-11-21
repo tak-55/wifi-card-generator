@@ -68,7 +68,7 @@ button:hover:not(:disabled){filter:brightness(1.06)}
 .wifi-card .corner{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 0 100%,
   transparent 0 24.33cqi,var(--c-a1) 24.33cqi 26.33cqi,transparent 26.33cqi 33.67cqi,var(--c-a1) 33.67cqi 35.67cqi,transparent 35.67cqi 43cqi,var(--c-a1) 43cqi 45cqi,transparent 45cqi)}
 .card-left{display:grid;gap:3cqi;min-width:0;position:relative;z-index:1}
-.card-head{display:flex;align-items:center;gap:2.6cqi;min-width:0}
+.card-head{display:flex;align-items:center;justify-content:center;gap:2.6cqi;min-width:0}
 .card-head svg{width:7cqi;height:auto;flex:none;color:var(--c-a1)}
 .card-head canvas{height:8cqi;width:auto;max-width:30cqi;flex:none}
 .card-title{font-size:5.3cqi;font-weight:700;line-height:1.15;overflow-wrap:anywhere}
@@ -478,14 +478,15 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if($("frame").checked){G.a1.lineWidth=S(1.2);rrc(G.a1,S(3),S(3),S(144),S(88),[S(9),0,S(21),0]);G.a1.stroke();}
 
     // 見出し行: ロゴ（高さ12mm枠）または Wi-Fi アイコン + 見出し
-    let headR;
+    // 見出し（ロゴ + タイトル）は右列（x 74〜140 mm）の中央に置く
+    const T=$("title").value,asp=logoImg?logoAspect():1,lw=logoImg?Math.min(12*asp,45):0,gap=logoImg?4:0,avail=66-lw-gap;
+    G.white.font=`700 ${S(8)}px ${SANS}`;
+    const tw=T?Math.min(G.white.measureText(T).width/S(1),Math.max(avail,0)):0,x0=107-(lw+gap+tw)/2;
     if(logoImg){
-      const asp=logoAspect(),lw=Math.min(12*asp,45),lh=lw/asp;
-      const pw=Math.max(1,Math.round(S(lw))),ph=Math.max(1,Math.round(S(lh)));
-      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(72)),Math.round(S(8+(12-lh)/2)));
-      headR=72+lw;
-    }else headR=70;
-    text(G.white,$("title").value,headR+4,20,8,700,SANS,140-(headR+4));
+      const lh=lw/asp,pw=Math.max(1,Math.round(S(lw))),ph=Math.max(1,Math.round(S(lh)));
+      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(x0)),Math.round(S(8+(12-lh)/2)));
+    }
+    text(G.white,T,x0+lw+gap,20,8,700,SANS,tw);
 
     text(G.a1,L.net,74,34,4.6,700,SANS,66);
     text(G.white,$("ssid").value,74,46.5,11,700,SANS,66);
