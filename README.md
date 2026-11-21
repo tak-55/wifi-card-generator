@@ -20,10 +20,10 @@ Everything runs in your browser. The SSID, password, and logo are never sent any
 
 ### Card design
 
-- Chamfered tag-shaped card (150 × 94 mm by default) with a Wi-Fi QR code, SSID, and password.
+- Card (150 × 94 mm by default) with a large rounded bottom-right corner and three concentric "signal" arcs radiating from the bottom-left corner. The QR code sits on the left; the SSID and the password (on a colored pill) are on the right.
 - Your logo (SVG/PNG, transparent or white background) or a built-in Wi-Fi icon, plus a heading such as your company name.
 - Four colors you can change: base, white, and two accents.
-- English or Japanese labels, an optional outer frame and corner accent, and a footer text.
+- English or Japanese labels, an optional outer frame, optional signal arcs, and a footer text.
 - Optional logo in the center of the QR code (your logo, or a Wi-Fi icon if none is set). It switches the QR to error correction level H and clears about 7% of the code area; it applies to the card, the 3D models, and the QR SVG/PNG downloads. Scan the result before you print or hand it out.
 - The password can be left off the card, so the QR code is the only way in.
 
@@ -44,7 +44,7 @@ A WebGL viewer (no dependencies) shows the exported meshes in color, either asse
 | 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). Contains one part per color, with filament assignments. |
 | Per-color STL (ZIP) | Slicers that don't split 3MF parts. Load all files together as one object with several parts. |
 | Color-change STL | Single-nozzle printers. One mesh, with a filament change at a set height. |
-| Stand STL | Two clips that hold the card upright. |
+| Stand STL | Two clips that hold the card upright, with rounded top edges. |
 
 Finish options:
 
