@@ -60,26 +60,26 @@ button:hover:not(:disabled){filter:brightness(1.06)}
 .stage{display:grid;gap:16px;justify-items:center}
 .wifi-card{width:min(100%,640px);aspect-ratio:150/94;background:var(--c-base);color:var(--c-white);
   border-radius:8% 0 16% 0 / 12.766% 0 25.532% 0;
-  padding:5.5% 6% 11% 6.7%;position:relative;display:grid;grid-template-columns:auto 1fr;gap:5%;align-items:center;
+  padding:5.5% 6% 8% 6.7%;position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;gap:2cqi 5%;align-items:center;
   container-type:inline-size;box-shadow:0 18px 40px -18px rgba(10,20,35,.55)}
 .wifi-card.framed::before{content:"";position:absolute;inset:3.191% 2%;border:2px solid var(--c-a1);pointer-events:none;
   border-radius:6.25% 0 14.58% 0 / 10.2% 0 23.9% 0}
 /* 左下を中心にした電波の弧（半径 38/52/66 mm、幅 3 mm）。1 mm = 0.6667cqi */
 .wifi-card .corner{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 0 100%,
   transparent 0 24.33cqi,var(--c-a1) 24.33cqi 26.33cqi,transparent 26.33cqi 33.67cqi,var(--c-a1) 33.67cqi 35.67cqi,transparent 35.67cqi 43cqi,var(--c-a1) 43cqi 45cqi,transparent 45cqi)}
-.card-left{display:grid;gap:3cqi;min-width:0;position:relative;z-index:1}
-.card-head{display:flex;align-items:center;justify-content:center;gap:2.6cqi;min-width:0}
+.card-left{grid-row:2;grid-column:2;display:grid;gap:3cqi;min-width:0;position:relative;z-index:1}
+.card-head{grid-row:1;grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:2.6cqi;min-width:0}
 .card-head svg{width:7cqi;height:auto;flex:none;color:var(--c-a1)}
 .card-head canvas{height:8cqi;width:auto;max-width:30cqi;flex:none}
 .card-title{font-size:5.3cqi;font-weight:700;line-height:1.15;overflow-wrap:anywhere}
 .k{font-size:3cqi;font-weight:700;margin:0;color:var(--c-a1)}
 .k.pw{color:var(--c-a2)}
-.v{font-size:7.3cqi;font-weight:700;margin:0;line-height:1.25;overflow-wrap:anywhere}
+.v{font-size:7cqi;font-weight:700;margin:0;line-height:1.25;overflow-wrap:anywhere}
 .v.pwv{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-weight:600;justify-self:start;background:var(--c-a2);color:#fff;padding:.8cqi 2cqi;border-radius:2.6cqi;font-size:4.7cqi;white-space:nowrap}
 .card-foot{font-size:2.9cqi;font-weight:700;margin-top:1cqi;display:flex;align-items:center;gap:1.4cqi}
 .card-foot::before{content:"";width:1.4cqi;height:1.4cqi;border-radius:50%;background:var(--c-a1)}
-.qr-wrap{order:-1;align-self:end;display:grid;gap:1.4cqi;justify-items:center;position:relative;z-index:1}
-.qr-box{background:var(--c-white);border-radius:8px;padding:2cqi;width:36cqi}
+.qr-wrap{grid-row:2;grid-column:1;align-self:end;display:grid;gap:1.4cqi;justify-items:center;position:relative;z-index:1}
+.qr-box{background:var(--c-white);border-radius:8px;padding:2cqi;width:33.33cqi}
 .qr-box svg{display:block;width:100%;height:auto}
 .qr-cap{font-size:2.6cqi;font-weight:700;background:var(--c-base);padding:.5cqi 1.6cqi;border-radius:1cqi}
 .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -216,7 +216,6 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   <section class="stage">
     <div class="wifi-card" id="card">
       <span class="corner" id="cCorner" aria-hidden="true"></span>
-      <div class="card-left">
         <div class="card-head">
           <svg id="cIcon" viewBox="0 0 48 36" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round">
             <path d="M4 12a28 28 0 0 1 40 0"/><path d="M11 19a18 18 0 0 1 26 0"/><path d="M18 26a8 8 0 0 1 12 0"/>
@@ -225,6 +224,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
           <canvas id="cLogo" hidden></canvas>
           <span class="card-title" id="cTitle"></span>
         </div>
+      <div class="card-left">
         <div><p class="k" id="cNetL"></p><p class="v" id="cSsid"></p></div>
         <div id="cPwBlock"><p class="k pw" id="cPwL"></p><p class="v pwv" id="cPw"></p></div>
         <div class="card-foot" id="cFoot"></div>
@@ -474,32 +474,32 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     // 左下を中心にした電波の弧。キャプション用に弧を切り欠く
     if(corner){const g=G.a1;g.lineWidth=S(3);g.lineCap="butt";
       for(const r of [38,52,66]){g.beginPath();g.arc(0,S(94),S(r),-Math.PI/2,0);g.stroke();}
-      g.globalCompositeOperation="destination-out";g.fillRect(S(10),S(70),S(54),S(7.5));g.globalCompositeOperation="source-over";g.lineCap="round";}
+      g.globalCompositeOperation="destination-out";g.fillRect(S(10),S(73.5),S(50),S(8.5));g.globalCompositeOperation="source-over";g.lineCap="round";}
     if($("frame").checked){G.a1.lineWidth=S(1.2);rrc(G.a1,S(3),S(3),S(144),S(88),[S(9),0,S(21),0]);G.a1.stroke();}
 
     // 見出し行: ロゴ（高さ12mm枠）または Wi-Fi アイコン + 見出し
-    // 見出し（ロゴ + タイトル）は右列（x 74〜140 mm）の中央に置く
-    const T=$("title").value,asp=logoImg?logoAspect():1,lw=logoImg?Math.min(12*asp,45):0,gap=logoImg?4:0,avail=66-lw-gap;
+    // 見出し（ロゴ + タイトル）はカード全体の中央（x=75 mm）に置く
+    const T=$("title").value,asp=logoImg?logoAspect():1,lw=logoImg?Math.min(10*asp,45):0,gap=logoImg?4:0,avail=126-lw-gap;
     G.white.font=`700 ${S(8)}px ${SANS}`;
-    const tw=T?Math.min(G.white.measureText(T).width/S(1),Math.max(avail,0)):0,x0=107-(lw+gap+tw)/2;
+    const tw=T?Math.min(G.white.measureText(T).width/S(1),Math.max(avail,0)):0,x0=75-(lw+gap+tw)/2;
     if(logoImg){
       const lh=lw/asp,pw=Math.max(1,Math.round(S(lw))),ph=Math.max(1,Math.round(S(lh)));
-      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(x0)),Math.round(S(8+(12-lh)/2)));
+      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(x0)),Math.round(S(13-lh/2)));
     }
-    text(G.white,T,x0+lw+gap,20,8,700,SANS,tw);
+    text(G.white,T,x0+lw+gap,16,8,700,SANS,tw);
 
-    text(G.a1,L.net,74,34,4.6,700,SANS,66);
-    text(G.white,$("ssid").value,74,46.5,11,700,SANS,66);
+    text(G.a1,L.net,70,33,4.6,700,SANS,68);
+    text(G.white,$("ssid").value,70,45.5,10.5,700,SANS,68);
     if(showPwOn()){
-      text(G.a2,L.pw,74,57,4.6,700,SANS,66);
-      rrc(G.a2,S(71),S(59.5),S(68),S(14),[S(4),S(4),S(4),S(4)]);G.a2.fill();
-      text(G.white,$("pw").value,74,69,7,600,MONO,62);
+      text(G.a2,L.pw,70,56,4.6,700,SANS,68);
+      rrc(G.a2,S(67),S(58),S(72),S(13.5),[S(4),S(4),S(4),S(4)]);G.a2.fill();
+      text(G.white,$("pw").value,70,67.5,7,600,MONO,66);
     }
-    if($("foot").value){G.a1.beginPath();G.a1.arc(S(75.6),S(80.4),S(1.3),0,Math.PI*2);G.a1.fill();text(G.white,$("foot").value,79,82,4.4,700,SANS,58);}
-    text(G.white,L.scan,37,76,3.8,700,SANS,48,"center");
+    if($("foot").value){G.a1.beginPath();G.a1.arc(S(71.6),S(78.8),S(1.3),0,Math.PI*2);G.a1.fill();text(G.white,$("foot").value,75,80.2,4.4,700,SANS,62);}
+    text(G.white,L.scan,35,79.5,3.6,700,SANS,46,"center");
 
     let moduleMm=0;
-    const px=Math.round(S(10)),py=Math.round(S(14)),P=Math.round(S(54));
+    const px=Math.round(S(10)),py=Math.round(S(22)),P=Math.round(S(50));
     rr(G.white,px,py,P,P,S(2));G.white.fill();
     G.a1.globalCompositeOperation="destination-out";rr(G.a1,px,py,P,P,S(2));G.a1.fill();G.a1.globalCompositeOperation="source-over";
     if(lastQr){
