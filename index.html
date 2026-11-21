@@ -60,7 +60,7 @@ button:hover:not(:disabled){filter:brightness(1.06)}
 .stage{display:grid;gap:16px;justify-items:center}
 .wifi-card{width:min(100%,640px);aspect-ratio:150/94;background:var(--c-base);color:var(--c-white);
   border-radius:8% 0 16% 0 / 12.766% 0 25.532% 0;
-  padding:5.5% 9% 5.5% 6.7%;position:relative;display:grid;grid-template-columns:auto 1fr;gap:6%;align-items:center;
+  padding:5.5% 9% 11% 6.7%;position:relative;display:grid;grid-template-columns:auto 1fr;gap:6%;align-items:center;
   container-type:inline-size;box-shadow:0 18px 40px -18px rgba(10,20,35,.55)}
 .wifi-card.framed::before{content:"";position:absolute;inset:3.191% 2%;border:2px solid var(--c-a1);pointer-events:none;
   border-radius:6.25% 0 14.58% 0 / 10.2% 0 23.9% 0}
@@ -474,7 +474,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     // 左下を中心にした電波の弧。キャプション用に弧を切り欠く
     if(corner){const g=G.a1;g.lineWidth=S(3);g.lineCap="butt";
       for(const r of [38,52,66]){g.beginPath();g.arc(0,S(94),S(r),-Math.PI/2,0);g.stroke();}
-      g.globalCompositeOperation="destination-out";g.fillRect(S(11),S(85),S(44),S(6.5));g.globalCompositeOperation="source-over";g.lineCap="round";}
+      g.globalCompositeOperation="destination-out";g.fillRect(S(11),S(72.5),S(44),S(6.5));g.globalCompositeOperation="source-over";g.lineCap="round";}
     if($("frame").checked){G.a1.lineWidth=S(1.2);rrc(G.a1,S(3),S(3),S(144),S(88),[S(9),0,S(21),0]);G.a1.stroke();}
 
     // 見出し行: ロゴ（高さ12mm枠）または Wi-Fi アイコン + 見出し
@@ -482,23 +482,23 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(logoImg){
       const asp=logoAspect(),lw=Math.min(12*asp,45),lh=lw/asp;
       const pw=Math.max(1,Math.round(S(lw))),ph=Math.max(1,Math.round(S(lh)));
-      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(68)),Math.round(S(10+(12-lh)/2)));
+      G[$("logoLayer").value].drawImage(maskToCanvas(logoMask(pw,ph),pw,ph,"#ffffff"),Math.round(S(68)),Math.round(S(8+(12-lh)/2)));
       headR=68+lw;
     }else headR=64;
-    text(G.white,$("title").value,headR+4,20,7,700,SANS,136-(headR+4));
+    text(G.white,$("title").value,headR+4,18,7,700,SANS,136-(headR+4));
 
-    text(G.a1,L.net,70,36,4.2,700,SANS,68);
-    text(G.white,$("ssid").value,70,48,9,700,SANS,68);
+    text(G.a1,L.net,70,33,4.2,700,SANS,68);
+    text(G.white,$("ssid").value,70,45,9,700,SANS,68);
     if(showPwOn()){
-      text(G.a2,L.pw,70,57.5,4.2,700,SANS,68);
-      rrc(G.a2,S(67),S(60),S(72),S(13),[S(3.5),S(3.5),S(3.5),S(3.5)]);G.a2.fill();
-      text(G.white,$("pw").value,70,69,6.5,600,MONO,66);
+      text(G.a2,L.pw,70,54.5,4.2,700,SANS,68);
+      rrc(G.a2,S(67),S(57),S(72),S(13),[S(3.5),S(3.5),S(3.5),S(3.5)]);G.a2.fill();
+      text(G.white,$("pw").value,70,66,6.5,600,MONO,66);
     }
-    if($("foot").value){G.a1.beginPath();G.a1.arc(S(71.6),S(82.6),S(1.2),0,Math.PI*2);G.a1.fill();text(G.white,$("foot").value,75,84,4,700,SANS,60);}
-    text(G.white,L.scan,33,89.5,3.4,700,SANS,40,"center");
+    if($("foot").value){G.a1.beginPath();G.a1.arc(S(71.6),S(79.6),S(1.2),0,Math.PI*2);G.a1.fill();text(G.white,$("foot").value,75,81,4,700,SANS,60);}
+    text(G.white,L.scan,33,77.5,3.4,700,SANS,40,"center");
 
     let moduleMm=0;
-    const px=Math.round(S(10)),py=Math.round(S(36)),P=Math.round(S(46));
+    const px=Math.round(S(10)),py=Math.round(S(24)),P=Math.round(S(46));
     rr(G.white,px,py,P,P,S(2));G.white.fill();
     G.a1.globalCompositeOperation="destination-out";rr(G.a1,px,py,P,P,S(2));G.a1.fill();G.a1.globalCompositeOperation="source-over";
     if(lastQr){
