@@ -86,6 +86,7 @@ button:hover:not(:disabled){filter:brightness(1.06)}
 
 .print3d{width:min(100%,640px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px}
 .print3d canvas{width:100%;height:auto;border-radius:10px}
+#v3{aspect-ratio:16/10;touch-action:none;cursor:grab;background:#E9EDF1}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem;margin:0;padding:0;list-style:none}
 .legend li{display:flex;align-items:center;gap:6px}
 .sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--line)}
@@ -242,6 +243,8 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 
     <div class="print3d">
       <h2>3Dプリント用モデル</h2>
+      <canvas id="v3" aria-label="3Dモデルのプレビュー"></canvas>
+      <p class="note">ドラッグで回転、ホイールで拡大・縮小</p>
       <canvas id="pv" aria-label="色層のプレビュー"></canvas>
       <ul class="legend" id="legend"></ul>
       <div class="actions">
@@ -501,6 +504,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(R.moduleMm&&R.moduleMm<1.0)msg+=` QRのセルが ${R.moduleMm.toFixed(2)} mm と小さめです。カード幅を広げると読み取りが安定します。`;
     else if(R.moduleMm)msg+=` QRのセルは約 ${R.moduleMm.toFixed(2)} mm。`;
     $("status").textContent=msg;
+    v3set(await cardParts({...o,res:3},o.finish),C);
     $("howto").textContent=o.finish==="flat"
       ?"フラット: 色は上面の色層だけに入ります。3MF をそのまま開くか、色別STLを同時に読み込んで「1つのオブジェクトの複数パーツ」として扱い、各パーツにフィラメントを割り当ててください。"
       :`浮き彫り: 「色替え用STL」を使い、高さ ${o.T.toFixed(2)} mm でフィラメント交換（一時停止）を入れると、土台と、文字・QR・ロゴの2色になります。マルチカラー機なら3MF/色別STLで4色にできます。`;
@@ -549,6 +553,62 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     }
     return parts;
   }
+
+  /* ---------- 3D ビューア（WebGL・依存なし。ドラッグで回転、ホイールで拡大縮小） ---------- */
+  const V3={yaw:-0.5,pitch:0.9,zoom:1,meshes:[],c:[0,0,0],r:1,gl:null,prog:null};
+  const v3sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],v3cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+    v3dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],v3norm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+  function mat4mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let t=0;for(let k=0;k<4;k++)t+=a[k*4+r]*b[c*4+k];o[c*4+r]=t;}return o;}
+  function v3init(){
+    const cv=$("v3"),gl=cv.getContext("webgl");if(!gl){cv.hidden=true;return;}
+    const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
+    gl.attachShader(pr,sh(gl.VERTEX_SHADER,"attribute vec3 a;attribute vec3 n;uniform mat4 m;uniform mat3 r;varying float l;void main(){gl_Position=m*vec4(a,1.);l=.4+.6*max(dot(normalize(r*n),normalize(vec3(.3,.5,.8))),0.);}"));
+    gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,"precision mediump float;uniform vec3 c;varying float l;void main(){gl_FragColor=vec4(c*l,1.);}"));
+    gl.linkProgram(pr);gl.useProgram(pr);gl.enable(gl.DEPTH_TEST);V3.gl=gl;V3.prog=pr;
+    let drag=null;
+    cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing";};
+    cv.onpointerup=()=>{drag=null;cv.style.cursor="grab";};
+    cv.onpointermove=e=>{if(!drag)return;V3.yaw-=(e.clientX-drag[0])*.01;V3.pitch=Math.min(1.55,Math.max(.05,V3.pitch+(e.clientY-drag[1])*.01));drag=[e.clientX,e.clientY];v3draw();};
+    cv.addEventListener("wheel",e=>{e.preventDefault();V3.zoom=Math.min(3,Math.max(.3,V3.zoom*Math.exp(e.deltaY*.001)));v3draw();},{passive:false});
+  }
+  function v3set(parts,C){
+    const gl=V3.gl;if(!gl)return;
+    const lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];
+    V3.meshes=parts.map(p=>{
+      const n=p.tris.length,pos=new Float32Array(n*3),nor=new Float32Array(n*3),V=p.verts;
+      for(let i=0;i<n;i+=3){
+        const ids=[p.tris[i]*3,p.tris[i+1]*3,p.tris[i+2]*3],P=ids.map(j=>[V[j],V[j+1],V[j+2]]);
+        const nm=v3norm(v3cross(v3sub(P[1],P[0]),v3sub(P[2],P[0])));
+        for(let k=0;k<3;k++)for(let d=0;d<3;d++){pos[(i+k)*3+d]=P[k][d];nor[(i+k)*3+d]=nm[d];lo[d]=Math.min(lo[d],P[k][d]);hi[d]=Math.max(hi[d],P[k][d]);}
+      }
+      const buf=a=>{const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);return b;};
+      const h=C[p.ckey];return {pos:buf(pos),nor:buf(nor),n,col:[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255)};
+    });
+    V3.c=lo.map((v,d)=>(v+hi[d])/2);V3.r=Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2||1;
+    v3draw();
+  }
+  function v3draw(){
+    const gl=V3.gl,cv=$("v3");if(!gl)return;
+    const w=Math.round(cv.clientWidth*(devicePixelRatio||1)),h=Math.round(cv.clientHeight*(devicePixelRatio||1));
+    if(!w||!h)return;
+    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+    gl.viewport(0,0,w,h);gl.clearColor(.914,.929,.945,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    const d=V3.r*2.6*V3.zoom,cp=Math.cos(V3.pitch),c=V3.c,eye=[c[0]+d*cp*Math.sin(V3.yaw),c[1]-d*cp*Math.cos(V3.yaw),c[2]+d*Math.sin(V3.pitch)];
+    const f=v3norm(v3sub(c,eye)),s=v3norm(v3cross(f,[0,0,1])),u=v3cross(s,f);
+    const view=[s[0],u[0],-f[0],0,s[1],u[1],-f[1],0,s[2],u[2],-f[2],0,-v3dot(s,eye),-v3dot(u,eye),v3dot(f,eye),1];
+    const N=V3.r*.1,F=V3.r*20,k=1/Math.tan(.31),a=w/h;
+    const proj=[k/a,0,0,0,0,k,0,0,0,0,(F+N)/(N-F),-1,0,0,2*F*N/(N-F),0];
+    gl.uniformMatrix4fv(gl.getUniformLocation(V3.prog,"m"),false,mat4mul(proj,view));
+    gl.uniformMatrix3fv(gl.getUniformLocation(V3.prog,"r"),false,[view[0],view[1],view[2],view[4],view[5],view[6],view[8],view[9],view[10]]);
+    const la=gl.getAttribLocation(V3.prog,"a"),ln=gl.getAttribLocation(V3.prog,"n");
+    for(const m of V3.meshes){
+      gl.uniform3fv(gl.getUniformLocation(V3.prog,"c"),m.col);
+      gl.bindBuffer(gl.ARRAY_BUFFER,m.pos);gl.enableVertexAttribArray(la);gl.vertexAttribPointer(la,3,gl.FLOAT,false,0,0);
+      gl.bindBuffer(gl.ARRAY_BUFFER,m.nor);gl.enableVertexAttribArray(ln);gl.vertexAttribPointer(ln,3,gl.FLOAT,false,0,0);
+      gl.drawArrays(gl.TRIANGLES,0,m.n);
+    }
+  }
+  v3init();addEventListener("resize",v3draw);
 
   function standPart(o){
     const thick=(o.finish==="flat"?o.T:o.T+o.h)+0.4,D=22,Hs=14,depth=9,Lx=40,res=o.res;
