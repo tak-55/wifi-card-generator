@@ -311,10 +311,10 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 
   function loadLogo(src){
     logoImg=null; logoSrc=null;
-    if(!src){ $("logoState").textContent="ロゴなし（Wi-Fi アイコンを表示）"; render(); return; }
+    if(!src){ $("logoState").textContent="ロゴなし"; render(); return; }
     const img=new Image();
     img.onload=()=>{ logoImg=img; logoSrc=src; $("logoState").textContent = logoFromUpload?"読み込んだロゴを使用中":"サイト既定のロゴを使用中"; render(); };
-    img.onerror=()=>{ $("logoState").textContent="ロゴを読み込めませんでした（Wi-Fi アイコンを表示）"; render(); };
+    img.onerror=()=>{ $("logoState").textContent="ロゴを読み込めませんでした"; render(); };
     img.src=src;
   }
 
@@ -478,7 +478,6 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
       g.globalCompositeOperation="destination-out";g.fillRect(S(10),S(73.5),S(50),S(8.5));g.globalCompositeOperation="source-over";g.lineCap="round";}
     if($("frame").checked){G.a1.lineWidth=S(1.2);rrc(G.a1,S(3),S(3),S(144),S(88),[S(9),S(9),S(21),S(9)]);G.a1.stroke();}
 
-    // 見出し行: ロゴ（高さ12mm枠）または Wi-Fi アイコン + 見出し
     // 見出し（ロゴ + タイトル）はカード全体の中央（x=75 mm）に置く
     const T=$("title").value,asp=logoImg?logoAspect():1,lw=logoImg?Math.min(10*asp,45):0,gap=logoImg?4:0,avail=126-lw-gap;
     G.white.font=`700 ${S(8)}px ${SANS}`;

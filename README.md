@@ -29,7 +29,7 @@ The images above use a dummy password (`Sample-Pass-2026`).
 ### Card design
 
 - Card (150 × 94 mm by default) with all four corners rounded (extra large at the bottom right) and three concentric "signal" arcs radiating from the bottom-left corner. The QR code sits on the left; the SSID and the password (on a colored pill) are on the right.
-- Your logo (SVG/PNG, transparent or white background) or a built-in Wi-Fi icon, plus a heading such as your company name.
+- A heading centered across the top (for example your company name), with an optional logo (SVG/PNG, transparent or white background) next to it.
 - Four colors you can change: base, white, and two accents.
 - English or Japanese labels, an optional outer frame, optional signal arcs, and an optional one-line note at the bottom (empty by default).
 - Optional logo in the center of the QR code (your logo, or a Wi-Fi icon if none is set). It switches the QR to error correction level H and clears about 7% of the code area; it applies to the card, the 3D models, and the QR SVG/PNG downloads. Scan the result before you print or hand it out.
@@ -69,7 +69,7 @@ Printing tips:
 
 ## Customizing for your organization
 
-Edit `config.js` to change the defaults: heading, logo path, SSID, footer text, label language, frame, accent, and colors. Put your logo at `assets/logo.svg` (a single-color transparent SVG or PNG looks best); if there is no logo, a Wi-Fi icon is shown.
+Edit `config.js` to change the defaults: heading, logo path, SSID, bottom note, label language, frame, signal arcs, and colors. To ship a default logo, put it in `assets/` (for example `assets/logo.svg`; a single-color transparent SVG or PNG looks best) and set `logo` to its path. Without a logo, only the heading text is shown. Users can also load a logo from the page; it stays in their browser only.
 
 Settings changed in the page are saved in that browser's local storage and take priority over `config.js`. "Reset to defaults" brings the defaults back. Passwords are never saved.
 
