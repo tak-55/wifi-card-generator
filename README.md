@@ -77,3 +77,7 @@ Fonts (IBM Plex Sans JP and IBM Plex Mono) are loaded from Google Fonts. If they
 
 - Don't commit real Wi-Fi passwords to a repository. Generate them in the browser each time.
 - A Wi-Fi QR code contains the password in plain text. Anyone who can see the card can join the network, so rotate the password when staff or visitors change.
+
+## License
+
+[MIT](LICENSE). The bundled `vendor/qrcode.js` is also MIT-licensed (see its header).
