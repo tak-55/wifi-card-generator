@@ -10,5 +10,5 @@ window.WIFI_CARD_CONFIG = {
   lang: "en",                      // ラベル: "en" / "ja"
   frame: true,                     // 外枠
   corner: true,                    // 右上のアクセント
-  colors: { base: "#1A1F26", white: "#F2F5F8", a1: "#2F8FE0", a2: "#E3A93B" }
+  colors: { base: "#12312B", white: "#F5F0E6", a1: "#6FD3B0", a2: "#FF7A59" }
 };

@@ -14,7 +14,7 @@
 :root{
   color-scheme: light;
   --bg:#E9EDF1; --panel:#FFFFFF; --ink:#1C2733; --muted:#5B6878; --line:#CBD3DC; --ui:#2F8FE0;
-  --c-base:#1A1F26; --c-white:#F2F5F8; --c-a1:#2F8FE0; --c-a2:#E3A93B;
+  --c-base:#12312B; --c-white:#F5F0E6; --c-a1:#6FD3B0; --c-a2:#FF7A59;
 }
 @media (prefers-color-scheme: dark){
   :root{ color-scheme: dark; --bg:#12171D; --panel:#1B222B; --ink:#E6EBF0; --muted:#97A3B1; --line:#2E3946; }
@@ -263,7 +263,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 
   /* ---------- 設定: 組み込み既定 ← config.js ← ブラウザ保存 ---------- */
   const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", ssid:"Guest WiFi", foot:"GUEST ACCESS",
-    lang:"en", frame:true, corner:true, colors:{base:"#1A1F26",white:"#F2F5F8",a1:"#2F8FE0",a2:"#E3A93B"} };
+    lang:"en", frame:true, corner:true, colors:{base:"#12312B",white:"#F5F0E6",a1:"#6FD3B0",a2:"#FF7A59"} };
   const CFG = Object.assign({}, BUILTIN, window.WIFI_CARD_CONFIG||{});
   CFG.colors = Object.assign({}, BUILTIN.colors, (window.WIFI_CARD_CONFIG||{}).colors||{});
   const STORE_KEY = "wifi-card-settings-v1";
