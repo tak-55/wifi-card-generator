@@ -1,31 +1,79 @@
-# Wi-Fi カードジェネレーター
+# Wi-Fi Card Generator
 
-会議室などに置く Wi-Fi 案内カードを作る静的サイトです。パスワード生成、Wi-Fi 接続用 QR、紙印刷、3Dプリント用モデル（3MF / STL）の書き出しまでをブラウザ内だけで行い、入力内容はどこにも送信しません。
+Make a guest Wi-Fi info card for a meeting room, reception desk, or shop counter: generate a password, add a Wi-Fi QR code, then print it on paper or export a 3D-printable model.
 
-## GitHub Pages で公開する
+Everything runs in your browser. The SSID, password, and logo are never sent anywhere.
 
-1. このフォルダの中身をリポジトリのルートに置いて push します。
-2. リポジトリの Settings → Pages で、Source を「Deploy from a branch」、Branch を `main` / `/ (root)` にします。
-3. 数分後に `https://<ユーザー名>.github.io/<リポジトリ名>/` で開けます。
+**Live demo:** https://tak-55.github.io/wifi-card-generator/
 
-## 自社向けにする
+## Features
 
-- `assets/logo.svg` にロゴを置きます（PNG なら `config.js` の `logo` のパスを変更）。単色の透過 SVG/PNG が最もきれいに出ます。
-- `config.js` で見出し・既定の SSID・色・ラベル言語などを設定します。
-- 画面からロゴを読み込むこともでき、その場合はそのブラウザだけに保存されます。
+### Network and password
 
-## 構成
+- Security type: WPA2/WPA3, WEP, or open (no password). Hidden SSID is supported.
+- Three password modes:
+  - **Readable**: three words, a separator, four digits, and an optional symbol (e.g. `Heron-Dune-Zephyr-8684?`). Easy to read aloud and type on a phone.
+  - **Random**: 10 to 32 characters with upper/lower case, digits, and optional symbols. Can exclude look-alike characters (`0 O 1 l I`).
+  - **Manual**: type your own.
+- Passwords come from `crypto.getRandomValues` with rejection sampling, so there is no modulo bias.
+- An estimated strength in bits is shown, and WPA length (8 to 63) is checked.
 
-- `index.html` … アプリ本体
-- `config.js` … サイトの既定値
-- `vendor/qrcode.js` … QR エンコーダ（qrcode-generator 1.4.4, MIT）
-- `assets/` … ロゴなど
+### Card design
 
-フォントは Google Fonts（IBM Plex Sans JP / IBM Plex Mono）を読み込みます。読み込めない環境では OS のフォントで代替されます。
+- Chamfered tag-shaped card (150 × 94 mm by default) with a Wi-Fi QR code, SSID, and password.
+- Your logo (SVG/PNG, transparent or white background) or a built-in Wi-Fi icon, plus a heading such as your company name.
+- Four colors you can change: base, white, and two accents.
+- English or Japanese labels, an optional outer frame and corner accent, and a footer text.
+- The password can be left off the card, so the QR code is the only way in.
 
-## 3Dプリント
+### Output
 
-- フラット: 色が上面に埋め込まれ、表面が平ら。AMS などのマルチカラー向け。
-- 浮き彫り: 「色替え用STL」を使い、板厚の高さでフィラメント交換すると2色になります。
-- 3MF は PrusaSlicer 形式のパーツ情報付きです。パーツが分かれないスライサーでは「色別STL」を同時に読み込んでください。
-- パスワードはリポジトリに保存しないでください。毎回ブラウザで生成する前提です。
+- **Paper**: print straight from the browser (only the card is printed).
+- **QR code**: save as SVG or PNG. The raw `WIFI:` string is shown so you can check what the QR code contains.
+- **3D printing**: see below.
+
+## 3D printing
+
+The card is built as a height map in the browser and exported as meshes. No server or slicer plugin is needed.
+
+| Export | Use it for |
+| --- | --- |
+| 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). Contains one part per color, with filament assignments. |
+| Per-color STL (ZIP) | Slicers that don't split 3MF parts. Load all files together as one object with several parts. |
+| Color-change STL | Single-nozzle printers. One mesh, with a filament change at a set height. |
+| Stand STL | Two clips that hold the card upright. |
+
+Finish options:
+
+- **Flat**: colors are inlaid into the top surface, so the surface is level. Best for multi-color printing.
+- **Raised**: text, QR, and logo stand up from the base. Pause at the base thickness and swap filament for a two-color print.
+
+Adjustable parameters: card width (100 to 220 mm), plate thickness (2 to 6 mm), color layer height (0.4 to 1.2 mm), and mesh resolution.
+
+Printing tips:
+
+- Thin strokes can get lost with a 0.4 mm nozzle. A card width of 150 mm or more is the safest. The page warns you when QR cells get smaller than 1 mm.
+- Check that the printed QR code scans before you put the card on display.
+- The 3MF uses PrusaSlicer's part metadata. Other slicers may need the per-color STL files.
+
+## Customizing for your organization
+
+Edit `config.js` to change the defaults: heading, logo path, SSID, footer text, label language, frame, accent, and colors. Put your logo at `assets/logo.svg` (a single-color transparent SVG or PNG looks best); if there is no logo, a Wi-Fi icon is shown.
+
+Settings changed in the page are saved in that browser's local storage and take priority over `config.js`. "Reset to defaults" brings the defaults back. Passwords are never saved.
+
+## Project layout
+
+- `index.html`: the whole app (UI, password generator, QR, rasterizer, mesh and 3MF/STL writers)
+- `config.js`: site defaults
+- `vendor/qrcode.js`: QR encoder ([qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) 1.4.4, MIT)
+- `assets/`: logo and other images
+
+It is a static site with no build step. To run it locally, serve the folder with any static server, for example `python3 -m http.server`.
+
+Fonts (IBM Plex Sans JP and IBM Plex Mono) are loaded from Google Fonts. If they can't be loaded, OS fonts are used instead.
+
+## Security notes
+
+- Don't commit real Wi-Fi passwords to a repository. Generate them in the browser each time.
+- A Wi-Fi QR code contains the password in plain text. Anyone who can see the card can join the network, so rotate the password when staff or visitors change.
