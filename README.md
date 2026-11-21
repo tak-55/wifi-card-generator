@@ -6,6 +6,14 @@ Everything runs in your browser. The SSID, password, and logo are never sent any
 
 **Live demo:** https://tak-55.github.io/wifi-card-generator/
 
+![Sample card](docs/card.png)
+
+| Assembled | As exported |
+| --- | --- |
+| ![3D model, assembled](docs/model-assembled.png) | ![3D model, as exported](docs/model-export.png) |
+
+The images above use a dummy password (`Sample-Pass-2026`).
+
 ## Features
 
 ### Network and password
