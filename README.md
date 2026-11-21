@@ -50,7 +50,7 @@ A WebGL viewer (no dependencies) shows the exported meshes in color, either asse
 
 | Export | Use it for |
 | --- | --- |
-| 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). One object made of one part per color, with filament assignments (Bambu Studio / OrcaSlicer and PrusaSlicer metadata). |
+| 3MF (multi-color) | Multi-color printers (AMS, MMU, etc.). The card is one object made of one part per color, with filament assignments (Bambu Studio / OrcaSlicer and PrusaSlicer metadata). The two stand clips are included as separate objects in front of the card, so one file holds everything to print. |
 | Per-color STL (ZIP) | Slicers that don't split 3MF parts. Load all files together as one object with several parts. |
 | Color-change STL | Single-nozzle printers. One mesh, with a filament change at a set height. |
 | Stand STL | Two ramp-shaped clips that hold the card upright, leaning back about 10°. The slot has a flared mouth for easy insertion. |

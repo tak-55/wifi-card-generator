@@ -685,6 +685,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     const T=+o.T.toFixed(3);
     return parts.map(p=>{const v=p.verts.slice();for(let i=0;i<v.length;i+=3){v[i]=mx-v[i];v[i+2]=T-v[i+2];}return {...p,verts:v};});
   }
+  const shift=(p,dx,dy,dz)=>{const v=p.verts.slice();for(let i=0;i<v.length;i+=3){v[i]+=dx;v[i+1]+=dy;v[i+2]+=dz;}return {...p,verts:v};};
   // スタンド断面（u=奥行, v=高さ）。前が低く後ろが高いスロープに、後ろへ th だけ傾けた溝を切る。これを Lx だけ押し出す
   const STAND={D:30,Hs:16,vb:4,ub:14,th:10*Math.PI/180,Lx:40};
   function standPart(o,single){
@@ -717,18 +718,41 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
       }}
     return new Uint8Array(buf);
   }
-  // 3MF: 色パーツごとにメッシュを作り、1つの「組立オブジェクト」にコンポーネントとして束ねる（標準形式）。
+  // 3MF: groups=[{name,parts}]。グループごとに「色パーツのメッシュ + それを束ねる1つの組立オブジェクト」を作る（標準のコンポーネント形式）。
   // Bambu Studio / OrcaSlicer は model_settings.config、PrusaSlicer は Slic3r_PE_model.config からパーツ名とフィラメントを読む。
-  function model3mf(parts){
-    const f=n=>+n.toFixed(4),AID=parts.length+1,vols=[];let to=0;
-    const objs=parts.map((p,k)=>{
-      const vs=[],ts=[];
-      for(let i=0;i<p.verts.length;i+=3)vs.push(`<vertex x="${f(p.verts[i])}" y="${f(p.verts[i+1])}" z="${f(p.verts[i+2])}"/>`);
-      for(let i=0;i<p.tris.length;i+=3)ts.push(`<triangle v1="${p.tris[i]}" v2="${p.tris[i+1]}" v3="${p.tris[i+2]}"/>`);
-      const nt=p.tris.length/3;vols.push({first:to,last:to+nt-1,name:p.key,fil:p.fil,id:k+1});to+=nt;
-      return `<object id="${k+1}" type="model"><mesh><vertices>\n${vs.join("\n")}\n</vertices><triangles>\n${ts.join("\n")}\n</triangles></mesh></object>`;
-    });
-    const te=new TextEncoder(),I="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1";
+  function model3mf(groups){
+    const f=n=>+n.toFixed(4),te=new TextEncoder(),I="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1";
+    let nid=0;const res=[],items=[],slic=[],bbl=[];
+    for(const g of groups){
+      const ids=[],vols=[];let to=0;
+      for(const p of g.parts){
+        const id=++nid,vs=[],ts=[];ids.push(id);
+        for(let i=0;i<p.verts.length;i+=3)vs.push(`<vertex x="${f(p.verts[i])}" y="${f(p.verts[i+1])}" z="${f(p.verts[i+2])}"/>`);
+        for(let i=0;i<p.tris.length;i+=3)ts.push(`<triangle v1="${p.tris[i]}" v2="${p.tris[i+1]}" v3="${p.tris[i+2]}"/>`);
+        const nt=p.tris.length/3;vols.push({first:to,last:to+nt-1,name:p.key,fil:p.fil,id});to+=nt;
+        res.push(`<object id="${id}" type="model"><mesh><vertices>\n${vs.join("\n")}\n</vertices><triangles>\n${ts.join("\n")}\n</triangles></mesh></object>`);
+      }
+      const aid=++nid;
+      res.push(`<object id="${aid}" name="${g.name}" type="model"><components>${ids.map(i=>`<component objectid="${i}"/>`).join("")}</components></object>`);
+      items.push(`<item objectid="${aid}" printable="1"/>`);
+      slic.push(`<object id="${aid}" instances_count="1">
+<metadata type="object" key="name" value="${g.name}"/>
+${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
+<metadata type="volume" key="name" value="${v.name}"/>
+<metadata type="volume" key="volume_type" value="ModelPart"/>
+<metadata type="volume" key="extruder" value="${v.fil}"/>
+</volume>`).join("\n")}
+</object>`);
+      bbl.push(`<object id="${aid}">
+<metadata key="name" value="${g.name}"/>
+<metadata key="extruder" value="${g.parts[0].fil}"/>
+${vols.map(v=>`<part id="${v.id}" subtype="normal_part">
+<metadata key="name" value="${v.name}"/>
+<metadata key="matrix" value="${I}"/>
+<metadata key="extruder" value="${v.fil}"/>
+</part>`).join("\n")}
+</object>`);
+    }
     const model=`<?xml version="1.0" encoding="UTF-8"?>
 <model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">
 <metadata name="slic3rpe:Version3mf">1</metadata>
@@ -736,33 +760,17 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 <metadata name="BambuStudio:3mfVersion">1</metadata>
 <metadata name="Title">wifi-card</metadata>
 <resources>
-${objs.join("\n")}
-<object id="${AID}" type="model"><components>${vols.map(v=>`<component objectid="${v.id}"/>`).join("")}</components></object>
+${res.join("\n")}
 </resources>
-<build><item objectid="${AID}" printable="1"/></build>
+<build>${items.join("")}</build>
 </model>`;
     const cfg=`<?xml version="1.0" encoding="UTF-8"?>
 <config>
-<object id="${AID}" instances_count="1">
-<metadata type="object" key="name" value="wifi-card"/>
-${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
-<metadata type="volume" key="name" value="${v.name}"/>
-<metadata type="volume" key="volume_type" value="ModelPart"/>
-<metadata type="volume" key="extruder" value="${v.fil}"/>
-</volume>`).join("\n")}
-</object>
+${slic.join("\n")}
 </config>`;
-    const bbl=`<?xml version="1.0" encoding="UTF-8"?>
+    const bblCfg=`<?xml version="1.0" encoding="UTF-8"?>
 <config>
-<object id="${AID}">
-<metadata key="name" value="wifi-card"/>
-<metadata key="extruder" value="1"/>
-${vols.map(v=>`<part id="${v.id}" subtype="normal_part">
-<metadata key="name" value="${v.name}"/>
-<metadata key="matrix" value="${I}"/>
-<metadata key="extruder" value="${v.fil}"/>
-</part>`).join("\n")}
-</object>
+${bbl.join("\n")}
 </config>`;
     return [
       ["[Content_Types].xml",te.encode(`<?xml version="1.0" encoding="UTF-8"?>
@@ -771,7 +779,7 @@ ${vols.map(v=>`<part id="${v.id}" subtype="normal_part">
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>`)],
       ["3D/3dmodel.model",te.encode(model)],
       ["Metadata/Slic3r_PE_model.config",te.encode(cfg)],
-      ["Metadata/model_settings.config",te.encode(bbl)]
+      ["Metadata/model_settings.config",te.encode(bblCfg)]
     ];
   }
   const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
@@ -817,9 +825,11 @@ ${vols.map(v=>`<part id="${v.id}" subtype="normal_part">
     finally{exportBtns.forEach(id=>$(id).disabled=false);}
   }
   $("dl3mf").onclick=()=>run("3MF",async()=>{
-    const o=opts(),parts=orient(await cardParts(o,o.finish),o);
-    download(fileBase()+".3mf",await zip(model3mf(parts)));
-    return `3MF を保存しました（${parts.length} パーツ、三角形 ${triCount(parts)} 個）。`;
+    const o=opts(),parts=orient(await cardParts(o,o.finish),o),st=standPart(o,true)[0];
+    // スタンドはカードの手前（y<0）に2個並べる。「書き出し形状」の表示と同じ配置
+    const clips=[20,90].map((x,i)=>({name:`stand-${i+1}`,parts:[shift(st,x,-STAND.D-8,0)]}));
+    download(fileBase()+".3mf",await zip(model3mf([{name:"wifi-card",parts},...clips])));
+    return `3MF を保存しました（カード ${parts.length} パーツ + スタンド2個、三角形 ${triCount([...parts,...clips.flatMap(c=>c.parts)])} 個）。`;
   });
   $("dlZip").onclick=()=>run("色別STL",async()=>{
     const o=opts(),parts=orient(await cardParts(o,o.finish),o);
