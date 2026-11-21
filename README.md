@@ -31,6 +31,7 @@ The images above use a dummy password (`Sample-Pass-2026`).
 - Card (150 × 94 mm by default) with 12 mm rounded corners and three concentric "signal" arcs radiating from the bottom-left corner. The QR code sits on the left; the SSID and the password (on a colored pill) are on the right.
 - A heading centered across the top (for example your company name), with an optional logo (SVG/PNG, transparent or white background) next to it.
 - Four colors you can change: base, white, and two accents.
+- **2-color pattern**: base plus one color. Text, QR, arcs, and the password pill all use the same color (the password text is cut out of the pill), so the model needs only two filaments. Combined with the *Raised* finish, a single filament change gives the full design on a single-nozzle printer.
 - English or Japanese labels, an optional outer frame, optional signal arcs, and an optional one-line note at the bottom (empty by default).
 - Optional logo in the center of the QR code (your logo, or a Wi-Fi icon if none is set). It switches the QR to error correction level H and clears about 7% of the code area; it applies to the card, the 3D models, and the QR SVG/PNG downloads. Scan the result before you print or hand it out.
 - The password can be left off the card, so the QR code is the only way in.

@@ -76,6 +76,7 @@ button:hover:not(:disabled){filter:brightness(1.06)}
 .k.pw{color:var(--c-a2)}
 .v{font-size:7cqi;font-weight:700;margin:0;line-height:1.25;overflow-wrap:anywhere}
 .v.pwv{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-weight:600;justify-self:start;background:var(--c-a2);color:#fff;padding:.8cqi 2cqi;border-radius:2.6cqi;font-size:4.7cqi;white-space:nowrap}
+.wifi-card.two .v.pwv{color:var(--c-base)}
 .card-foot:empty{display:none}
 .card-foot{font-size:2.9cqi;font-weight:700;margin-top:1cqi;display:flex;align-items:center;gap:1.4cqi}
 .card-foot::before{content:"";width:1.4cqi;height:1.4cqi;border-radius:50%;background:var(--c-a1)}
@@ -183,6 +184,12 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
             <option value="ja">日本語（ネットワーク / パスワード）</option>
           </select>
         </label>
+        <label>配色パターン
+          <select id="palette">
+            <option value="full">4色（土台＋白＋アクセント2色）</option>
+            <option value="two">2色（土台＋1色。文字・QR・弧を同色に）</option>
+          </select>
+        </label>
         <label class="check"><input type="checkbox" id="showPw" checked> カードにパスワードを表示</label>
         <label class="check"><input type="checkbox" id="frame"> 外枠</label>
         <label class="check"><input type="checkbox" id="corner"> 左下の電波アーク</label>
@@ -272,12 +279,12 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   const $ = id => document.getElementById(id);
 
   /* ---------- 設定: 組み込み既定 ← config.js ← ブラウザ保存 ---------- */
-  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", qrLogo:false, ssid:"Guest WiFi", foot:"",
+  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", qrLogo:false, palette:"full", ssid:"Guest WiFi", foot:"",
     lang:"en", frame:false, corner:true, colors:{base:"#14161A",white:"#FFFFFF",a1:"#C8F25A",a2:"#FF5A1F"} };
   const CFG = Object.assign({}, BUILTIN, window.WIFI_CARD_CONFIG||{});
   CFG.colors = Object.assign({}, BUILTIN.colors, (window.WIFI_CARD_CONFIG||{}).colors||{});
   const STORE_KEY = "wifi-card-settings-v1";
-  const FIELDS = { text:["ssid","title","foot"], select:["sec","lang","logoMode","logoLayer","finish","res"],
+  const FIELDS = { text:["ssid","title","foot"], select:["sec","lang","logoMode","logoLayer","finish","res","palette"],
     check:["hidden","showPw","frame","corner","qrLogo"], num:["cw","ct","ch"], color:{cBase:"base",cWhite:"white",cA1:"a1",cA2:"a2"} };
   const store = {
     get(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch{ return {}; } },
@@ -290,7 +297,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     const v = Object.assign({}, CFG, s); v.colors = Object.assign({}, CFG.colors, s.colors||{});
     for(const id of FIELDS.text) $(id).value = v[id] ?? "";
     for(const id of ["lang","logoMode","logoLayer"]) $(id).value = v[id];
-    for(const id of ["sec","finish","res"]) if(v[id]!=null) $(id).value = v[id];
+    for(const id of ["sec","finish","res","palette"]) if(v[id]!=null) $(id).value = v[id];
     for(const id of ["hidden","frame","corner","qrLogo"]) $(id).checked = !!v[id];
     $("showPw").checked = v.showPw ?? true;
     for(const id of FIELDS.num) if(v[id]!=null) $(id).value = v[id];
@@ -405,7 +412,8 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   /* ---------- 画面のカード ---------- */
   const LBL={en:{net:"NETWORK",pw:"PASSWORD",scan:"SCAN TO CONNECT"},ja:{net:"ネットワーク",pw:"パスワード",scan:"カメラで読み取って接続"}};
   const showPwOn=()=>$("showPw").checked&&$("sec").value!=="nopass";
-  const colors=()=>({base:$("cBase").value,white:$("cWhite").value,a1:$("cA1").value,a2:$("cA2").value});
+  const twoOn=()=>$("palette").value==="two";
+  const colors=()=>{const c={base:$("cBase").value,white:$("cWhite").value,a1:$("cA1").value,a2:$("cA2").value};if(twoOn())c.a1=c.a2=c.white;return c;};
 
   function render(){
     const m=mode(),sec=$("sec").value,L=LBL[$("lang").value],C=colors(),root=document.documentElement.style;
@@ -426,6 +434,8 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     $("cPwBlock").style.display=showPwOn()?"":"none";
     $("cFoot").textContent=$("foot").value;
     $("card").classList.toggle("framed",$("frame").checked);
+    $("card").classList.toggle("two",twoOn());
+    $("cA1").disabled=$("cA2").disabled=twoOn();
     $("cCorner").hidden=!$("corner").checked;
     $("cIcon").style.display="none";
     const lc=$("cLogo");lc.hidden=!logoImg;
@@ -437,7 +447,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     const p=payload();$("payload").textContent=p;
     lastQr=buildQr(p);
     $("qr").innerHTML=lastQr?qrSvg(lastQr,2,C.white):"QRライブラリを読み込めませんでした";
-    $("legend").innerHTML=LAYERS.map(c=>`<li><span class="sw" style="background:${C[c.ckey]}"></span>フィラメント${c.fil}: ${c.name}</li>`).join("");
+    $("legend").innerHTML=(twoOn()?[LAYERS[0],{...LAYERS[1],name:"文字・QR・弧・パスワード枠（1色）"}]:LAYERS).map(c=>`<li><span class="sw" style="background:${C[c.ckey]}"></span>フィラメント${c.fil}: ${c.name}</li>`).join("");
     schedulePreview();saveSoon();
   }
 
@@ -513,6 +523,9 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 
     const toMask=g=>{const d=g.getImageData(0,0,w,h).data,mk=new Uint8Array(w*h);for(let i=0;i<w*h;i++)mk[i]=d[i*4+3]>127?1:0;return mk;};
     const M={plate:toMask(G.plate),white:toMask(G.white),a1:toMask(G.a1),a2:toMask(G.a2)};
+    if(twoOn()){  // 2色: 白・アクセントを1つの色層にまとめる。ピル上の文字だけは抜いて土台色にする
+      for(let i=0;i<w*h;i++){const ink=!(M.white[i]&&M.a2[i])&&(M.white[i]||M.a1[i]||M.a2[i]);M.white[i]=ink?1:0;M.a1[i]=M.a2[i]=0;}
+    }
     for(let i=0;i<w*h;i++){
       if(!M.plate[i]){M.white[i]=M.a1[i]=M.a2[i]=0;continue;}
       if(M.white[i]){M.a1[i]=M.a2[i]=0;}else if(M.a1[i])M.a2[i]=0;
@@ -818,7 +831,7 @@ ${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
 
   document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener("change",()=>mode()==="manual"?render():regen()));
   ["len","noAmb","sym"].forEach(id=>$(id).addEventListener("input",()=>mode()!=="manual"?regen():render()));
-  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","qrLogo","cBase","cWhite","cA1","cA2",
+  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","qrLogo","palette","cBase","cWhite","cA1","cA2",
    "finish","cw","ct","ch","res"].forEach(id=>$(id).addEventListener("input",render));
 
   const initialLogo=applySettings(store.get());

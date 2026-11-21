@@ -8,6 +8,7 @@ window.WIFI_CARD_CONFIG = {
   ssid: "Guest WiFi",
   foot: "",                        // 下部の一行（空なら非表示）。例: "Guest access only"
   lang: "en",                      // ラベル: "en" / "ja"
+  palette: "full",                 // "full" = 4色、"two" = 2色（土台＋1色。文字・QR・弧を同色に）
   frame: false,                    // 外枠
   corner: true,                    // 左下の電波アーク
   colors: { base: "#14161A", white: "#FFFFFF", a1: "#C8F25A", a2: "#FF5A1F" }
