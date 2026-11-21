@@ -204,6 +204,12 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
             <option value="raised">浮き彫り（単色ノズルで途中1回の色替え向け）</option>
           </select>
         </label>
+        <label>印刷の向き
+          <select id="orient">
+            <option value="up" selected>表面を上（標準）</option>
+            <option value="down">表面を下（PEIシートなど。フラット専用）</option>
+          </select>
+        </label>
         <div class="row">
           <label>カード幅 (mm)<input type="number" id="cw" min="100" max="220" step="5" value="150"></label>
           <label>板厚 (mm)<input type="number" id="ct" min="2" max="6" step="0.2" value="3"></label>
@@ -279,12 +285,12 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   const $ = id => document.getElementById(id);
 
   /* ---------- 設定: 組み込み既定 ← config.js ← ブラウザ保存 ---------- */
-  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", qrLogo:false, palette:"full", ssid:"Guest WiFi", foot:"",
+  const BUILTIN = { title:"WELCOME", logo:null, logoMode:"alpha", logoLayer:"white", qrLogo:false, palette:"full", orient:"up", ssid:"Guest WiFi", foot:"",
     lang:"en", frame:false, corner:true, colors:{base:"#14161A",white:"#FFFFFF",a1:"#C8F25A",a2:"#FF5A1F"} };
   const CFG = Object.assign({}, BUILTIN, window.WIFI_CARD_CONFIG||{});
   CFG.colors = Object.assign({}, BUILTIN.colors, (window.WIFI_CARD_CONFIG||{}).colors||{});
   const STORE_KEY = "wifi-card-settings-v1";
-  const FIELDS = { text:["ssid","title","foot"], select:["sec","lang","logoMode","logoLayer","finish","res","palette"],
+  const FIELDS = { text:["ssid","title","foot"], select:["sec","lang","logoMode","logoLayer","finish","res","palette","orient"],
     check:["hidden","showPw","frame","corner","qrLogo"], num:["cw","ct","ch"], color:{cBase:"base",cWhite:"white",cA1:"a1",cA2:"a2"} };
   const store = {
     get(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch{ return {}; } },
@@ -297,7 +303,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     const v = Object.assign({}, CFG, s); v.colors = Object.assign({}, CFG.colors, s.colors||{});
     for(const id of FIELDS.text) $(id).value = v[id] ?? "";
     for(const id of ["lang","logoMode","logoLayer"]) $(id).value = v[id];
-    for(const id of ["sec","finish","res","palette"]) if(v[id]!=null) $(id).value = v[id];
+    for(const id of ["sec","finish","res","palette","orient"]) if(v[id]!=null) $(id).value = v[id];
     for(const id of ["hidden","frame","corner","qrLogo"]) $(id).checked = !!v[id];
     $("showPw").checked = v.showPw ?? true;
     for(const id of FIELDS.num) if(v[id]!=null) $(id).value = v[id];
@@ -436,6 +442,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     $("card").classList.toggle("framed",$("frame").checked);
     $("card").classList.toggle("two",twoOn());
     $("cA1").disabled=$("cA2").disabled=twoOn();
+    $("orient").disabled=$("finish").value!=="flat";
     $("cCorner").hidden=!$("corner").checked;
     $("cIcon").style.display="none";
     const lc=$("cLogo");lc.hidden=!logoImg;
@@ -458,7 +465,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
 
   function opts(){
     const num=(id,lo,hi,d)=>{const v=parseFloat($(id).value);return isFinite(v)?Math.min(hi,Math.max(lo,v)):d;};
-    return {W:num("cw",100,220,150),T:num("ct",2,6,3),h:num("ch",0.4,1.2,0.6),finish:$("finish").value,res:+$("res").value};
+    return {W:num("cw",100,220,150),T:num("ct",2,6,3),h:num("ch",0.4,1.2,0.6),finish:$("finish").value,res:+$("res").value,flip:$("orient").value==="down"&&$("finish").value==="flat"};
   }
   async function loadFonts(){
     const txt=[$("title").value,$("ssid").value,$("foot").value,LBL.ja.net,LBL.ja.pw,LBL.ja.scan,LBL.en.scan].join("");
@@ -551,7 +558,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     if(R.moduleMm&&R.moduleMm<1.0)msg+=` QRのセルが ${R.moduleMm.toFixed(2)} mm と小さめです。カード幅を広げると読み取りが安定します。`;
     else if(R.moduleMm)msg+=` QRのセルは約 ${R.moduleMm.toFixed(2)} mm。`;
     $("status").textContent=msg;
-    V3.card=await cardParts({...o,res:3},o.finish);V3.stand=standPart({...o,res:6},true)[0];V3.T=o.finish==="flat"?o.T:o.T+o.h;
+    V3.o=o;V3.card=await cardParts({...o,res:3},o.finish);V3.stand=standPart({...o,res:6},true)[0];V3.T=o.finish==="flat"?o.T:o.T+o.h;
     v3scene();
     $("howto").textContent=o.finish==="flat"
       ?"フラット: 色は上面の色層だけに入ります。3MF をそのまま開くか、色別STLを同時に読み込んで「1つのオブジェクトの複数パーツ」として扱い、各パーツにフィラメントを割り当ててください。"
@@ -616,7 +623,7 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     let drag=null;
     cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing";};
     cv.onpointerup=()=>{drag=null;cv.style.cursor="grab";};
-    cv.onpointermove=e=>{if(!drag)return;V3.yaw-=(e.clientX-drag[0])*.01;V3.pitch=Math.min(1.55,Math.max(.05,V3.pitch+(e.clientY-drag[1])*.01));drag=[e.clientX,e.clientY];v3draw();};
+    cv.onpointermove=e=>{if(!drag)return;V3.yaw-=(e.clientX-drag[0])*.01;V3.pitch=Math.min(1.55,Math.max(-1.55,V3.pitch+(e.clientY-drag[1])*.01));drag=[e.clientX,e.clientY];v3draw();};
     cv.addEventListener("wheel",e=>{e.preventDefault();V3.zoom=Math.min(3,Math.max(.3,V3.zoom*Math.exp(e.deltaY*.001)));v3draw();},{passive:false});
   }
   // 組み立て: カードをスタンド2個の溝に立てる / 書き出し形状: 3MF・STLで出力されるカードとスタンドをそのまま並べる
@@ -625,9 +632,10 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
     const tr=(p,f)=>{const v=[];for(let i=0;i<p.verts.length;i+=3)v.push(...f(p.verts[i],p.verts[i+1],p.verts[i+2]));return {...p,verts:v};};
     const asm=document.querySelector('input[name=v3mode]:checked').value==="assembled",st=V3.stand,xs=asm?[22,78]:[20,90];
     const {ub,vb,th}=STAND,sn=Math.sin(th),cs=Math.cos(th),
-      card=asm?V3.card.map(p=>tr(p,(x,y,z)=>{const n=V3.T/2-z;return [x,ub+y*sn+n*cs,vb+y*cs-n*sn];})):V3.card;
+      base=(!asm&&V3.o.flip)?orient(V3.card,V3.o):V3.card,
+      card=asm?V3.card.map(p=>tr(p,(x,y,z)=>{const n=V3.T/2-z;return [x,ub+y*sn+n*cs,vb+y*cs-n*sn];})):base;
     const clips=xs.map(x=>tr(st,(a,b,c)=>[a+x,asm?b:b-STAND.D-8,c]));
-    $("v3note").textContent=(asm?"組み立て: カードをスタンド2個の溝に差した状態。":"書き出し形状: 3MF/STL のカードと、スタンドSTL（2個）をそのまま並べています。")+"ドラッグで回転、ホイールで拡大・縮小";
+    $("v3note").textContent=(asm?"組み立て: カードをスタンド2個の溝に差した状態。":"書き出し形状: 3MF/STL のカード"+(V3.o.flip?"（表面を下にした印刷向き）":"")+"と、スタンドSTL（2個）をそのまま並べています。")+"ドラッグで回転、ホイールで拡大・縮小";
     v3set(card.concat(clips),colors());
   }
   function v3set(parts,C){
@@ -670,6 +678,13 @@ footer{grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center}
   v3init();addEventListener("resize",v3draw);
   document.querySelectorAll("input[name=v3mode]").forEach(e=>e.onchange=v3scene);
 
+  // 表面を下にして印刷する向き: Y軸まわりに180°回す（x と z を反転。回転なので面の向きは保たれ、裏返すと文字が正しく読める）
+  function orient(parts,o){
+    if(!o.flip)return parts;
+    let mx=0;for(const p of parts)for(let i=0;i<p.verts.length;i+=3)mx=Math.max(mx,p.verts[i]);
+    const T=+o.T.toFixed(3);
+    return parts.map(p=>{const v=p.verts.slice();for(let i=0;i<v.length;i+=3){v[i]=mx-v[i];v[i+2]=T-v[i+2];}return {...p,verts:v};});
+  }
   // スタンド断面（u=奥行, v=高さ）。前が低く後ろが高いスロープに、後ろへ th だけ傾けた溝を切る。これを Lx だけ押し出す
   const STAND={D:30,Hs:16,vb:4,ub:14,th:10*Math.PI/180,Lx:40};
   function standPart(o,single){
@@ -784,12 +799,12 @@ ${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
     finally{exportBtns.forEach(id=>$(id).disabled=false);}
   }
   $("dl3mf").onclick=()=>run("3MF",async()=>{
-    const o=opts(),parts=await cardParts(o,o.finish);
+    const o=opts(),parts=orient(await cardParts(o,o.finish),o);
     download(fileBase()+".3mf",await zip(model3mf(parts)));
     return `3MF を保存しました（${parts.length} パーツ、三角形 ${triCount(parts)} 個）。`;
   });
   $("dlZip").onclick=()=>run("色別STL",async()=>{
-    const o=opts(),parts=await cardParts(o,o.finish);
+    const o=opts(),parts=orient(await cardParts(o,o.finish),o);
     download(fileBase()+"_stl.zip",await zip(parts.map(p=>[`${fileBase()}_${p.fil}_${p.key}.stl`,stl([p])])));
     return `色別STLを保存しました（${parts.map(p=>p.key).join(" / ")}）。`;
   });
@@ -831,7 +846,7 @@ ${vols.map(v=>`<volume firstid="${v.first}" lastid="${v.last}">
 
   document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener("change",()=>mode()==="manual"?render():regen()));
   ["len","noAmb","sym"].forEach(id=>$(id).addEventListener("input",()=>mode()!=="manual"?regen():render()));
-  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","qrLogo","palette","cBase","cWhite","cA1","cA2",
+  ["ssid","sec","hidden","pw","title","foot","showPw","lang","logoMode","logoLayer","frame","corner","qrLogo","palette","orient","cBase","cWhite","cA1","cA2",
    "finish","cw","ct","ch","res"].forEach(id=>$(id).addEventListener("input",render));
 
   const initialLogo=applySettings(store.get());

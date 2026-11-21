@@ -60,6 +60,11 @@ Finish options:
 - **Flat**: colors are inlaid into the top surface, so the surface is level. Best for multi-color printing.
 - **Raised**: text, QR, and logo stand up from the base. Pause at the base thickness and swap filament for a two-color print.
 
+Print orientation (Flat finish only):
+
+- **Face up** (default): the design is on the top surface.
+- **Face down**: the model is rotated 180° around the Y axis, so the design sits on the bed side. On a textured PEI sheet the front surface takes the sheet's texture and the design is protected by the plate. The 3MF and the per-color STL files are exported in this orientation; the color-change STL is always face up. The viewer can be rotated below the card to check the bed side.
+
 Adjustable parameters: card width (100 to 220 mm), plate thickness (2 to 6 mm), color layer height (0.4 to 1.2 mm), and mesh resolution.
 
 Printing tips:
